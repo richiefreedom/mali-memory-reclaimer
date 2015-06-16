@@ -297,7 +297,7 @@ _mali_osk_errcode_t mali_mmu_reset(struct mali_mmu_core *mmu)
 	MALI_DEBUG_PRINT(3, ("Mali MMU: mali_kernel_mmu_reset: %s\n", mmu->hw_core.description));
 
 	if (_MALI_OSK_ERR_OK == mali_mmu_raw_reset(mmu)) {
-		mali_hw_core_register_write(&mmu->hw_core, MALI_MMU_REGISTER_INT_MASK, MALI_MMU_INTERRUPT_PAGE_FAULT | MALI_MMU_INTERRUPT_READ_BUS_ERROR);
+		mali_mmu_unmask_all_interrupts(mmu);
 		/* no session is active, so just activate the empty page directory */
 		mali_hw_core_register_write(&mmu->hw_core, MALI_MMU_REGISTER_DTE_ADDR, mali_empty_page_directory_phys);
 		mali_mmu_enable_paging(mmu);

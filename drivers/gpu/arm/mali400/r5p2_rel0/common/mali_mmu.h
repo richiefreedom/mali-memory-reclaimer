@@ -110,6 +110,13 @@ MALI_STATIC_INLINE void mali_mmu_mask_all_interrupts(struct mali_mmu_core *mmu)
 	mali_hw_core_register_write(&mmu->hw_core, MALI_MMU_REGISTER_INT_MASK, 0);
 }
 
+MALI_STATIC_INLINE void mali_mmu_unmask_all_interrupts(struct mali_mmu_core *mmu)
+{
+	mali_hw_core_register_write(&mmu->hw_core,
+				    MALI_MMU_REGISTER_INT_MASK,
+				    MALI_MMU_INTERRUPT_PAGE_FAULT | MALI_MMU_INTERRUPT_READ_BUS_ERROR);
+}
+
 MALI_STATIC_INLINE u32 mali_mmu_get_status(struct mali_mmu_core *mmu)
 {
 	return mali_hw_core_register_read(&mmu->hw_core, MALI_MMU_REGISTER_STATUS);
