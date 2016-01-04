@@ -67,6 +67,7 @@
 #include <linux/types.h>
 #include <linux/debugfs.h>
 #include <linux/zsmalloc.h>
+#include <linux/zpool.h>
 
 /*
  * This must be power of 2 and greater than of equal to sizeof(link_free).
@@ -288,7 +289,8 @@ static int create_handle_cache(struct zs_pool *pool)
 
 static void destroy_handle_cache(struct zs_pool *pool)
 {
-	kmem_cache_destroy(pool->handle_cachep);
+	if (pool->handle_cachep)
+		kmem_cache_destroy(pool->handle_cachep);
 }
 
 static unsigned long alloc_handle(struct zs_pool *pool)
@@ -730,7 +732,8 @@ out:
  * to form a zspage for each size class. This is important
  * to reduce wastage due to unusable space left at end of
  * each zspage which is given as:
- *	wastage = Zp - Zp % size_class
+ *     wastage = Zp % class_size
+ *     usage = Zp - wastage
  * where Zp = zspage size = k * PAGE_SIZE where k = 1, 2, ...
  *
  * For example, for size class of 3/8 * PAGE_SIZE, we should
@@ -1174,13 +1177,16 @@ static int zs_register_cpu_notifier(void)
 {
 	int cpu, uninitialized_var(ret);
 
-	register_cpu_notifier(&zs_cpu_nb);
+	cpu_notifier_register_begin();
+
+	__register_cpu_notifier(&zs_cpu_nb);
 	for_each_online_cpu(cpu) {
 		ret = zs_cpu_notifier(NULL, CPU_UP_PREPARE, (void *)(long)cpu);
 		if (notifier_to_errno(ret))
 			break;
 	}
 
+	cpu_notifier_register_done();
 	return notifier_to_errno(ret);
 }
 
@@ -1188,10 +1194,13 @@ static void zs_unregister_cpu_notifier(void)
 {
 	int cpu;
 
+	cpu_notifier_register_begin();
+
 	for_each_online_cpu(cpu)
 		zs_cpu_notifier(NULL, CPU_DEAD, (void *)(long)cpu);
-	unregister_cpu_notifier(&zs_cpu_nb);
+	__unregister_cpu_notifier(&zs_cpu_nb);
 
+	cpu_notifier_register_done();
 }
 
 static void init_zs_size_classes(void)
@@ -1702,8 +1711,6 @@ static unsigned long __zs_compact(struct zs_pool *pool,
 	struct page *src_page;
 	struct page *dst_page = NULL;
 	unsigned long nr_total_migrated = 0;
-
-	cond_resched();
 
 	spin_lock(&class->lock);
 	while ((src_page = isolate_source_page(class))) {
