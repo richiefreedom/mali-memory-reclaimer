@@ -2314,6 +2314,59 @@ static int wlan_change_beacon(wlan_vif_t *vif,
 	unsigned char vif_id = vif->id;
 
 	printkd("%s enter\n", __func__);
+
+	if (vif->id == NETIF_0_ID) {
+		/* send beacon extra ies */
+		if (beacon->beacon_ies != NULL) {
+			printkd("begin send beacon extra ies\n");
+
+			ret = wlan_cmd_set_wps_ie(vif_id,
+					SOFTAP_WPS_BEACON_IE,
+					beacon->beacon_ies,
+					beacon->beacon_ies_len);
+			if (ret) {
+				printkd("wlan_cmd_set_wps_ie failed with %d\n", ret);
+				return ret;
+			} else {
+				printkd("send beacon extra ies successfully\n");
+			}
+		}
+
+		/* send probe response ies */
+		if (beacon->proberesp_ies != NULL) {
+			printkd("begin send probe response extra ies\n");
+
+			ret = wlan_cmd_set_wps_ie(vif_id,
+					SOFTAP_WPS_PROBERESP_IE,
+					beacon->proberesp_ies,
+					beacon->proberesp_ies_len);
+			if (ret) {
+				printkd("wlan_cmd_set_wps_ie failed with %d\n", ret);
+				return ret;
+			} else {
+				printkd("send proberesp_ies successfully\n");
+			}
+		}
+
+		/* send associate response ies */
+		if (beacon->assocresp_ies != NULL) {
+			printkd("begin send associate response extra ies\n");
+
+			ret = wlan_cmd_set_wps_ie(vif_id,
+					SOFTAP_WPS_ASSOCRESP_IE,
+					beacon->assocresp_ies,
+					beacon->assocresp_ies_len);
+			if (ret) {
+				printkd("wlan_cmd_set_wps_ie failed with %d\n", ret);
+				return ret;
+			} else {
+				printkd("send assocresp_iessuccessfully\n");
+			}
+		}
+
+		return ret;
+	}
+
 #ifdef WIFI_DIRECT_SUPPORT
 	/* send beacon extra ies */
 	if (beacon->head != NULL) {
