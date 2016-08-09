@@ -846,10 +846,13 @@ static int wlan_cfg80211_scan(struct wiphy *wiphy,
 					   + sizeof(scan_ssids->len));
 			scan_ssids = (struct wlan_cmd_scan_ssid *)
 			    (data + scan_ssids_len);
-		}
 
-		vif->cfg80211.hidden_ssid_scan = true;
+			if (vif->cfg80211.hidden_ssid_scan == false)
+				vif->cfg80211.hidden_ssid_scan = true;
+		}
 	}
+
+	printkd("hidden ssid scanning: %d\n", vif->cfg80211.hidden_ssid_scan);
 
 	n = min(request->n_channels, 14);
 	if (n > 15)
