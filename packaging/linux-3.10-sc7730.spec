@@ -21,7 +21,6 @@ BuildRequires:  module-init-tools
 BuildRequires:	python
 BuildRequires:	gcc
 BuildRequires:	bash
-BuildRequires:	system-tools
 BuildRequires:	bc
 ExclusiveArch:  %arm
 
