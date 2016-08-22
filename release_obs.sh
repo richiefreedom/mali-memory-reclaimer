@@ -91,13 +91,13 @@ if [ "$?" != "0" ]; then
         exit 1
 fi
 
-dtbtool -o $BOOT_PATH/merged-dtb -p $DTC_PATH -v $BOOT_PATH/dts/
+./scripts/sprd_dtbtool.sh
 if [ "$?" != "0" ]; then
 	echo "Failed to make merged-dtb"
 	exit 1
 fi
 
-mkdzimage -o $BOOT_PATH/$DZIMAGE -k $BOOT_PATH/zImage -d $BOOT_PATH/merged-dtb
+./scripts/sprd_mkdzimage.sh
 if [ "$?" != "0" ]; then
 	echo "Failed to make mkdzImage"
 	exit 1
