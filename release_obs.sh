@@ -12,8 +12,7 @@ CONFIG_STR=${INPUT_STR%_smk_dis*}
 #CONFIG_STR=${INPUT_STR%_tima_en*}
 OPTION_STR=${INPUT_STR#*${CONFIG_STR}}
 
-INPUT_STR2=${2}
-echo "defconfig : ${CONFIG_STR}_defconfig , option : ${OPTION_STR}, Release : ${INPUT_STR2}"
+echo "defconfig : ${CONFIG_STR}_defconfig , option : ${OPTION_STR}"
 
 if [ "${OPTION_STR}" = "_smk_dis" ]; then
 	echo "Now change smack-disable for ${CONFIG_STR}_defconfig"
@@ -55,16 +54,6 @@ if [ "${OPTION_STR}" = "_tima_en" ]; then
 	sed -i 's/\# CONFIG_TIMA_LOG is not set/CONFIG_TIMA_LOG=y/g' arch/arm/configs/${CONFIG_STR}_defconfig
 	if [ "$?" != "0" ]; then
 		echo "Failed to change tima enable step 2"
-		exit 1
-	fi
-fi
-
-if [ "${INPUT_STR2}" = "USR" ]; then
-	echo "Now disable CONFIG_SLP_KERNEL_ENG for ${CONFIG_STR}_defconfig"
-
-	sed -i 's/CONFIG_SLP_KERNEL_ENG=y/\# CONFIG_SLP_KERNEL_ENG is not set/g' arch/arm/configs/${CONFIG_STR}_defconfig
-	if [ "$?" != "0" ]; then
-		echo "Failed to disable CONFIG_SLP_KERNEL_ENG feature"
 		exit 1
 	fi
 fi

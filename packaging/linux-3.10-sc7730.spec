@@ -98,18 +98,13 @@ This package provides kernel license file.
 %setup -q
 
 %build
-%if 0%{?tizen_build_binary_release_type_eng}
-%define RELEASE_TYPE ENG
-%else
-%define RELEASE_TYPE USR
-%endif
 
 for i in %{BOARDS}; do
 	target=$i
 	mkdir -p %_builddir/mod_$target
 	make distclean
 
-	./release_obs.sh $target %{RELEASE_TYPE}
+	./release_obs.sh $target
 
 	cp -f arch/arm/boot/zImage %_builddir/zImage.$target
 	cp -f arch/arm/boot/dzImage %_builddir/dzImage.$target
