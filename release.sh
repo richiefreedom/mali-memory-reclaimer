@@ -47,7 +47,7 @@ if [ "$?" != "0" ]; then
 	exit 1
 fi
 
-./scripts/sprd_dtbtool.sh
+./scripts/sprd_dtbtool.sh -p ${DTC_PATH} -v ${BOOT_PATH}/dts/
 if [ "$?" != "0" ]; then
 	echo "Failed to make merged-dtb"
 	exit 1

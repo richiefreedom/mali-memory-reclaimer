@@ -2,10 +2,11 @@
 
 
 ## Functions
-function write_to_4bytes_binary()
+function write_hex_to_4bytes_binary()
 {
-	HEX=`echo "obase=16; $1" | bc`
+	HEX=$1
 
+	HEX=${HEX#0x}
 	NUM=$((8-${#HEX}))
 
 	ZERO="00000000"
@@ -19,6 +20,13 @@ function write_to_4bytes_binary()
 	done > $2
 }
 
+function write_to_4bytes_binary()
+{
+	HEX=`echo "obase=16; $1" | bc`
+
+	write_hex_to_4bytes_binary $HEX $2
+}
+
 function write_to_padding_binary()
 {
 	rm -f padding
@@ -30,7 +38,9 @@ function write_to_padding_binary()
 		touch padding
 	fi
 
-	echo -en " | PAD: $PAD_SIZE[B]\n"
+	if [ "${VERBOSE}" -eq "1" ]; then
+		echo -en " | PAD: $PAD_SIZE[B]\n"
+	fi
 }
 
 function get_dtb_size()
@@ -40,33 +50,122 @@ function get_dtb_size()
 	DTB_SIZE=$(($SIZE + $PAD_SIZE))
 }
 
+function help() {
+	echo "sprd_dtbtool.sh [OPTIONS] -o <output file> <input DTB path>"
+	echo "  options:"
+	echo "  --output-file/-o    output file"
+	echo "  --dtc-path/-p       path to dtc"
+	echo "  --page-size/-s      page size in bytes"
+	echo "  --verbose/-v        verbose"
+	echo "  --help/-h           this help screen"
+	exit 0
+}
+
 
 ## Defines
 OUT="merged-dtb"
 OUT_TMP="multi.tmp"
 
 OUT_DIR="./arch/arm/boot"
-DTS_DIR="./arch/arm/boot/dts"
+DTC_PATH=scripts/dtc
 
 SPRD_MAGIC="SPRD"
 SPRD_VERSION=1
-
-DTB=(
-"sprd-scx35-tizen_z3-r00.dtb"
-"sprd-scx35-tizen_z3-r01.dtb"
-"sprd-scx35-tizen_z3-r02.dtb"
-"sprd-scx35-tizen_z3-r03.dtb"
-)
-DTB_CNT=4
-
-CHIPSET=8830
-PLATFORM=0
-REV=131072
-DTB_OFFSET=2048
+SPRD_TAG="sprd,sc-id"
 
 ENDOFHEADER=0
 
+let MAX_PAD_SIZE=1024*1024
 PAD=2048
+VERBOSE=0
+
+if [ "$#" -eq "0" ]; then
+	help
+fi
+
+
+## Input parameters
+params="$(getopt -o o:p:s:vh -l output-file:,dtc-path:,page-size:,verbose,help --name "$0" -- "$@")"
+eval set -- "$params"
+while true
+do
+	case "$1" in
+		-o|--output-file)
+			OUTPUT_FILE=$2
+			shift 2
+			OUT_DIR=`dirname $OUTPUT_FILE`
+			if [ ! -d "$OUT_DIR" ]; then
+				echo "invalid output path '$OUT_DIR'."
+				exit 1
+			fi
+			OUT=${OUTPUT_FILE#${OUT_DIR}}
+			OUT=${OUT//\//}
+			OUT_TMP=${OUT}.tmp
+			;;
+		-p|--dtc-path)
+			DTC_PATH=$2
+			shift 2
+			;;
+		-s|--page-size)
+			PAD=$2
+			shift 2
+			R=${PAD#-}
+			R=${R//[0-9]/}
+			# page size should be number, and larger than 0, and smaller than 1024*1024
+			if [ ! -z "$R" ] || [ "$PAD" -lt "0" ] || [ "$PAD" -gt "$MAX_PAD_SIZE" ]; then
+				echo "invalid page size."
+				exit 1
+			fi
+			;;
+		-v|--verbose)
+			VERBOSE=1
+			shift
+			;;
+		-h|--help)
+			help
+			;;
+		--)
+			shift
+			break
+			;;
+		*)
+			help
+			;;
+	esac
+done
+
+if [ "$#" -eq "0" ]; then
+	help
+fi
+
+DTS_DIR=$1
+DTS_DIR=${DTS_DIR%\/}
+if [ ! -d "$DTS_DIR" ]; then
+	echo "invalid DTB input path '$DTS_DIR'."
+	exit 1
+else
+	DTB=(`find ${DTS_DIR} -name "*.dtb"`)
+	for i in ${DTB[*]}; do
+		if [ -e $i ]; then
+			TAG_CHECK=`${DTC_PATH}/dtc -I dtb -O dts $i 2>/dev/null | grep "${SPRD_TAG}"`
+			if [ "z${TAG_CHECK}" == "z" ]; then
+				# no tag in the dtb file
+				DTB=(${DTB[@]/$i})
+			fi
+		fi
+	done
+fi
+
+if [ ! -f "$DTC_PATH/dtc" ]; then
+	echo "no DTC file in '$DTC_PATH'."
+	exit 1
+fi
+
+if [ "${VERBOSE}" -eq "1" ]; then
+	echo "DTB input path is '${DTS_DIR}'"
+	echo "output path is '${OUT_DIR}', output file is '${OUT}'"
+	echo "page size is '${PAD}'"
+fi
 
 
 ## Header
@@ -74,10 +173,14 @@ rm -f $OUT
 rm -f $OUT_TMP
 touch $OUT_TMP
 
+DTB_CNT=${#DTB[@]}
 HEADER_SIZE=$((12 + 20 * $DTB_CNT + 4))
+DTB_OFFSET=$PAD
 
-echo -en " *HEADER "
-echo -en "$HEADER_SIZE[B]\n"
+if [ "${VERBOSE}" -eq "1" ]; then
+	echo -en " *HEADER "
+	echo -en "$HEADER_SIZE[B]\n"
+fi
 
 echo -en $SPRD_MAGIC > $OUT
 cat $OUT >> $OUT_TMP
@@ -87,16 +190,22 @@ write_to_4bytes_binary $DTB_CNT $OUT
 cat $OUT >> $OUT_TMP
 
 for i in ${DTB[*]}; do
-	FILE="$DTS_DIR/$i"
+	FILE="$i"
 	if [ -e $FILE ]; then
-		write_to_4bytes_binary $CHIPSET $OUT
+		TAG_CHECK=`${DTC_PATH}/dtc -I dtb -O dts $i 2>/dev/null | grep "${SPRD_TAG}"`
+		TAG_CHECK=${TAG_CHECK#*<}
+		TAG_CHECK=${TAG_CHECK%>*}
+		CHIPSET=`echo ${TAG_CHECK} | awk '{ print $1 }'`
+		PLATFORM=`echo ${TAG_CHECK} | awk '{ print $2 }'`
+		REV=`echo ${TAG_CHECK} | awk '{ print $3 }'`
+
+		write_hex_to_4bytes_binary $CHIPSET $OUT
 		cat $OUT >> $OUT_TMP
 
-		write_to_4bytes_binary $PLATFORM $OUT
+		write_hex_to_4bytes_binary $PLATFORM $OUT
 		cat $OUT >> $OUT_TMP
-		PLATFORM=$(($PLATFORM + 1))
 
-		write_to_4bytes_binary $REV $OUT
+		write_hex_to_4bytes_binary $REV $OUT
 		cat $OUT >> $OUT_TMP
 
 		write_to_4bytes_binary $DTB_OFFSET $OUT
@@ -122,15 +231,16 @@ cat $OUT_TMP padding > $OUT
 
 ## DTB
 for i in ${DTB[*]}; do
-	FILE="$DTS_DIR/$i"
+	FILE="$i"
 	if [ -e $FILE ]; then
 		NAME=`echo $i`
-		echo -en " *$NAME "
+		SIZE=`du -b $FILE | awk '{print $1}'`
 
 		cat $OUT $FILE > $OUT_TMP
-
-		SIZE=`du -b $FILE | awk '{print $1}'`
-		echo -en "$SIZE[B]\n"
+		if [ "${VERBOSE}" -eq "1" ]; then
+			echo -en " *$NAME "
+			echo -en "$SIZE[B]\n"
+		fi
 
 		write_to_padding_binary $SIZE
 		cat $OUT_TMP padding > $OUT
@@ -149,4 +259,7 @@ mv -f $OUT $OUT_DIR/
 
 S=`du -b $OUT_DIR/$OUT | awk '{print $1}'`
 S_K=$(($S/1024))
-echo -en "## OUT: $OUT size: $S[B]; $S_K[K]\n"
+if [ "${VERBOSE}" -eq "1" ]; then
+	echo -en "## OUT: $OUT size: $S[B]; $S_K[KB]\n"
+fi
+echo "$OUT_DIR/$OUT (size: ${S_K}KB) is created."
