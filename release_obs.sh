@@ -86,7 +86,7 @@ if [ "$?" != "0" ]; then
 	exit 1
 fi
 
-./scripts/sprd_mkdzimage.sh
+./scripts/sprd_mkdzimage.sh -o ${BOOT_PATH}/${DZIMAGE} -k ${BOOT_PATH}/zImage -d ${BOOT_PATH}/merged-dtb
 if [ "$?" != "0" ]; then
 	echo "Failed to make mkdzImage"
 	exit 1
