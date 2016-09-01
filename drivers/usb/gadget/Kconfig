@@ -518,50 +518,167 @@ config USB_SPRD_SWITCH
 
 # composite based drivers
 config USB_LIBCOMPOSITE
-	tristate
+	tristate "USB Gadget Drivers"
 	select CONFIGFS_FS
 	depends on USB_GADGET
 
 config USB_F_ACM
 	tristate
 
+# Just a dummy config which indicates that serial gadget requires ACM in particular state
+config USB_G_SERIAL_REQ_F_ACM
+       tristate
+
+# Just a dummy config which indicates that cdc gadget requires ACM in particular state
+config USB_G_CDC_COMPOSITE_REQ_F_ACM
+       tristate
+
+# Just a dummy config which indicates that nokia gadget requires ACM in particular state
+config USB_G_NOKIA_REQ_F_ACM
+       tristate
+
+# Just a dummy config which indicates that acm ms gadget requires ACM in particular state
+config USB_G_ACM_MS_REQ_F_ACM
+       tristate
+
+# Just a dummy config which indicates that gadget multi requires ACM in particular state
+config USB_G_MULTI_REQ_F_ACM
+       tristate
+
+# Just a dummy config which indicates that android gadget requires ACM in particular state
+config USB_G_ANDROID_REQ_F_ACM
+       tristate
+
+# Just a dummy config which indicates that slp gadget requires ACM in particular state
+config USB_G_SLP_REQ_F_ACM
+       tristate
+
+if USB_G_SERIAL_REQ_F_ACM = y || USB_G_CDC_COMPOSITE_REQ_F_ACM = y || USB_G_NOKIA_REQ_F_ACM = y || USB_G_ACM_MS_REQ_F_ACM = y || USB_G_MULTI_REQ_F_ACM = y || USB_G_ANDROID_REQ_F_ACM = y || USB_G_SLP_REQ_F_ACM = y
+ config USB_F_ACM_SELECTOR
+        tristate
+        default y
+        select USB_F_ACM
+        select USB_F_ACM_REQ_U_SERIAL
+ endif
+
+ if !(USB_G_SERIAL_REQ_F_ACM = y || USB_G_CDC_COMPOSITE_REQ_F_ACM = y || USB_G_NOKIA_REQ_F_ACM = y || USB_G_ACM_MS_REQ_F_ACM = y || USB_G_MULTI_REQ_F_ACM = y || USB_G_SLP_REQ_F_ACM = y) && (USB_G_SERIAL_REQ_F_ACM = m || USB_G_CDC_COMPOSITE_REQ_F_ACM = m || USB_G_NOKIA_REQ_F_ACM = m || USB_G_ACM_MS_REQ_F_ACM = m || USB_G_MULTI_REQ_F_ACM = m || USB_G_ANDROID_REQ_F_ACM = m || USB_G_SLP_REQ_F_ACM = m)
+ config USB_F_ACM_SELECTOR
+        tristate
+        default m
+        select USB_F_ACM
+        select USB_F_ACM_REQ_U_SERIAL
+ endif
+
 config USB_F_SS_LB
 	tristate
+
+# Just a dummy config which indicates that gadget zero requires SS and LB in particular state
+config USB_G_ZERO_REQ_F_SS_LB
+       tristate
+
+if USB_G_ZERO_REQ_F_SS_LB = y
+config USB_F_SS_LB_SELECTOR
+       tristate
+       default y
+       select USB_F_SS_LB
+endif
+
+if !(USB_G_ZERO_REQ_F_SS_LB = y) && (USB_G_ZERO_REQ_F_SS_LB = m)
+config USB_F_SS_LB_SELECTOR
+       tristate
+       default m
+       select USB_F_SS_LB
+endif
 
 config USB_U_SERIAL
 	tristate
 
+# Just a dummy config which indicates that F_ACM requires U_SERIAL in particular state
+config USB_F_ACM_REQ_U_SERIAL
+       tristate
+
+# Just a dummy config which indicates that F_SERIAL requires U_SERIAL in particular state
+config USB_F_SERIAL_REQ_U_SERIAL
+       tristate
+
+# Just a dummy config which indicates that F_OBEX requires U_SERIAL in particular state
+config USB_F_OBEX_REQ_U_SERIAL
+       tristate
+
+# Just a dummy config which indicates that dbg gadget requires U_SERIAL in particular state
+config USB_G_DBG_REQ_U_SERIAL
+       tristate
+
+if USB_F_ACM_REQ_U_SERIAL = y || USB_F_SERIAL_REQ_U_SERIAL = y || USB_F_OBEX_REQ_U_SERIAL = y || USB_G_DBG_REQ_U_SERIAL = y
+config USB_U_SERIAL_SELECTOR
+       tristate
+       default y
+       select USB_U_SERIAL
+endif
+
+if !(USB_F_ACM_REQ_U_SERIAL = y || USB_F_SERIAL_REQ_U_SERIAL = y || USB_F_OBEX_REQ_U_SERIAL = y || USB_G_DBG_REQ_U_SERIAL = y) && (USB_F_ACM_REQ_U_SERIAL = m || USB_F_SERIAL_REQ_U_SERIAL = m || USB_F_OBEX_REQ_U_SERIAL = m || USB_G_DBG_REQ_U_SERIAL = m)
+config USB_U_SERIAL_SELECTOR
+       tristate
+       default m
+       select USB_U_SERIAL
+endif
+
 config USB_F_SERIAL
 	tristate
+# Just a dummy config which indicates that serial gadget requires SERIAL in particular state
+config USB_G_SERIAL_REQ_F_SERIAL
+       tristate
+
+if USB_G_SERIAL_REQ_F_SERIAL = y
+config USB_F_SERIAL_SELECTOR
+       tristate
+       default y
+       select USB_F_SERIAL
+       select USB_F_SERIAL_REQ_U_SERIAL
+endif
+
+if !(USB_G_SERIAL_REQ_F_SERIAL = y) && (USB_G_SERIAL_REQ_F_SERIAL = m)
+config USB_F_SERIAL_SELECTOR
+       tristate
+       default m
+       select USB_F_SERIAL
+       select USB_F_SERIAL_REQ_U_SERIAL
+endif
 
 config USB_F_OBEX
 	tristate
 
-choice
-	tristate "USB Gadget Drivers"
-	default USB_ETH
-	help
-	  A Linux "Gadget Driver" talks to the USB Peripheral Controller
-	  driver through the abstract "gadget" API.  Some other operating
-	  systems call these "client" drivers, of which "class drivers"
-	  are a subset (implementing a USB device class specification).
-	  A gadget driver implements one or more USB functions using
-	  the peripheral hardware.
+# Just a dummy config which indicates that serial gadget requires OBEX in particular state
+config USB_G_SERIAL_REQ_F_OBEX
+       tristate
 
-	  Gadget drivers are hardware-neutral, or "platform independent",
-	  except that they sometimes must understand quirks or limitations
-	  of the particular controllers they work with.  For example, when
-	  a controller doesn't support alternate configurations or provide
-	  enough of the right types of endpoints, the gadget driver might
-	  not be able work with that controller, or might need to implement
-	  a less common variant of a device class protocol.
+# Just a dummy config which indicates that nokia gadget requires OBEX in particular state
+config USB_G_NOKIA_REQ_F_OBEX
+       tristate
 
+if USB_G_SERIAL_REQ_F_OBEX = y || USB_G_NOKIA_REQ_F_OBEX = y
+config USB_F_OBEX_SELECTOR
+       tristate
+       default y
+       select USB_F_OBEX
+       select USB_F_OBEX_REQ_U_SERIAL
+endif
+
+if !(USB_G_SERIAL_REQ_F_OBEX = y || USB_G_NOKIA_REQ_F_OBEX = y) && (USB_G_SERIAL_REQ_F_OBEX = m || USB_G_NOKIA_REQ_F_OBEX = m)
+config USB_F_OBEX_SELECTOR
+       tristate
+       default m
+       select USB_F_OBEX
+       select USB_F_OBEX_REQ_U_SERIAL
+endif
+
+menu "Legacy USB Gadget Drivers"
 # this first set of drivers all depend on bulk-capable hardware.
 
 config USB_ZERO
 	tristate "Gadget Zero (DEVELOPMENT)"
-	select USB_LIBCOMPOSITE
-	select USB_F_SS_LB
+	depends on USB_LIBCOMPOSITE
+	select USB_G_ZERO_REQ_F_SS_LB
 	help
 	  Gadget Zero is a two-configuration device.  It either sinks and
 	  sources bulk data; or it loops back a configurable number of
@@ -597,7 +714,7 @@ config USB_ZERO_HNPTEST
 config USB_AUDIO
 	tristate "Audio Gadget"
 	depends on SND
-	select USB_LIBCOMPOSITE
+	depends on USB_LIBCOMPOSITE
 	select SND_PCM
 	help
 	  This Gadget Audio driver is compatible with USB Audio Class
@@ -626,7 +743,7 @@ config GADGET_UAC1
 config USB_ETH
 	tristate "Ethernet Gadget (with CDC Ethernet support)"
 	depends on NET
-	select USB_LIBCOMPOSITE
+	depends on USB_LIBCOMPOSITE
 	select CRC32
 	help
 	  This driver implements Ethernet style communication, in one of
@@ -662,7 +779,7 @@ config USB_ETH
 config USB_ETH_RNDIS
 	bool "RNDIS support"
 	depends on USB_ETH
-	select USB_LIBCOMPOSITE
+	depends on USB_LIBCOMPOSITE
 	default y
 	help
 	   Microsoft Windows XP bundles the "Remote NDIS" (RNDIS) protocol,
@@ -681,7 +798,7 @@ config USB_ETH_RNDIS
 config USB_ETH_EEM
        bool "Ethernet Emulation Model (EEM) support"
        depends on USB_ETH
-	select USB_LIBCOMPOSITE
+       depends on USB_LIBCOMPOSITE
        default n
        help
          CDC EEM is a newer USB standard that is somewhat simpler than CDC ECM
@@ -698,7 +815,7 @@ config USB_ETH_EEM
 config USB_G_NCM
 	tristate "Network Control Model (NCM) support"
 	depends on NET
-	select USB_LIBCOMPOSITE
+	depends on USB_LIBCOMPOSITE
 	select CRC32
 	help
 	  This driver implements USB CDC NCM subclass standard. NCM is
@@ -723,7 +840,7 @@ config USB_GADGETFS
 
 config USB_FUNCTIONFS
 	tristate "Function Filesystem"
-	select USB_LIBCOMPOSITE
+	depends on USB_LIBCOMPOSITE
 	select USB_FUNCTIONFS_GENERIC if !(USB_FUNCTIONFS_ETH || USB_FUNCTIONFS_RNDIS)
 	help
 	  The Function Filesystem (FunctionFS) lets one create USB
@@ -762,7 +879,7 @@ config USB_FUNCTIONFS_GENERIC
 config USB_MASS_STORAGE
 	tristate "Mass Storage Gadget"
 	depends on BLOCK
-	select USB_LIBCOMPOSITE
+	depends on USB_LIBCOMPOSITE
 	help
 	  The Mass Storage Gadget acts as a USB Mass Storage disk drive.
 	  As its storage repository it can use a regular file or a block
@@ -778,7 +895,7 @@ config USB_MASS_STORAGE
 config USB_GADGET_TARGET
 	tristate "USB Gadget Target Fabric Module"
 	depends on TARGET_CORE
-	select USB_LIBCOMPOSITE
+	depends on USB_LIBCOMPOSITE
 	help
 	  This fabric is an USB gadget. Two USB protocols are supported that is
 	  BBB or BOT (Bulk Only Transport) and UAS (USB Attached SCSI). BOT is
@@ -789,11 +906,10 @@ config USB_GADGET_TARGET
 config USB_G_SERIAL
 	tristate "Serial Gadget (with CDC ACM and CDC OBEX support)"
 	depends on TTY
-	select USB_U_SERIAL
-	select USB_F_ACM
-	select USB_F_SERIAL
-	select USB_F_OBEX
-	select USB_LIBCOMPOSITE
+	select USB_G_SERIAL_REQ_F_ACM
+	select USB_G_SERIAL_REQ_F_SERIAL
+	select USB_G_SERIAL_REQ_F_OBEX
+	depends on USB_LIBCOMPOSITE
 	help
 	  The Serial Gadget talks to the Linux-USB generic serial driver.
 	  This driver supports a CDC-ACM module option, which can be used
@@ -814,7 +930,7 @@ config USB_G_SERIAL
 config USB_MIDI_GADGET
 	tristate "MIDI Gadget"
 	depends on SND
-	select USB_LIBCOMPOSITE
+	depends on USB_LIBCOMPOSITE
 	select SND_RAWMIDI
 	help
 	  The MIDI Gadget acts as a USB Audio device, with one MIDI
@@ -828,7 +944,7 @@ config USB_MIDI_GADGET
 
 config USB_G_PRINTER
 	tristate "Printer Gadget"
-	select USB_LIBCOMPOSITE
+	depends on USB_LIBCOMPOSITE
 	help
 	  The Printer Gadget channels data between the USB host and a
 	  userspace program driving the print engine. The user space
@@ -844,9 +960,8 @@ config USB_G_PRINTER
 
 config USB_G_ANDROID
 	boolean "Android Composite Gadget"
-	select USB_F_ACM
+	select USB_G_ANDROID_REQ_F_ACM
 	select USB_LIBCOMPOSITE
-	select USB_U_SERIAL
 	help
 	  The Android Composite Gadget supports multiple USB
 	  functions: adb, acm, mass storage, mtp, accessory
@@ -880,8 +995,7 @@ config USB_ANDROID_RNDIS_DWORD_ALIGNED
 
 config USB_G_SLP
 	boolean "SLP Composite Gadget (similar to Android)"
-	select USB_F_ACM
-	select USB_U_SERIAL
+	select USB_G_SLP_REQ_F_ACM
 	select USB_LIBCOMPOSITE
 	help
 	  The SLP gadget driver supports multiple USB functions.
@@ -895,9 +1009,8 @@ if TTY
 config USB_CDC_COMPOSITE
 	tristate "CDC Composite Device (Ethernet and ACM)"
 	depends on NET
-	select USB_LIBCOMPOSITE
-	select USB_U_SERIAL
-	select USB_F_ACM
+	depends on USB_LIBCOMPOSITE
+	select USB_G_CDC_COMPOSITE_REQ_F_ACM
 	help
 	  This driver provides two functions in one configuration:
 	  a CDC Ethernet (ECM) link, and a CDC ACM (serial port) link.
@@ -912,9 +1025,8 @@ config USB_CDC_COMPOSITE
 config USB_G_NOKIA
 	tristate "Nokia composite gadget"
 	depends on PHONET
-	select USB_LIBCOMPOSITE
-	select USB_U_SERIAL
-	select USB_F_ACM
+	depends on USB_LIBCOMPOSITE
+	select USB_G_NOKIA_REQ_F_ACM
 	help
 	  The Nokia composite gadget provides support for acm, obex
 	  and phonet in only one composite gadget driver.
@@ -925,9 +1037,8 @@ config USB_G_NOKIA
 config USB_G_ACM_MS
 	tristate "CDC Composite Device (ACM and mass storage)"
 	depends on BLOCK
-	select USB_LIBCOMPOSITE
-	select USB_U_SERIAL
-	select USB_F_ACM
+	depends on USB_LIBCOMPOSITE
+	select USB_G_ACM_MS_REQ_F_ACM
 	help
 	  This driver provides two functions in one configuration:
 	  a mass storage, and a CDC ACM (serial port) link.
@@ -939,9 +1050,8 @@ config USB_G_MULTI
 	tristate "Multifunction Composite Gadget"
 	depends on BLOCK && NET
 	select USB_G_MULTI_CDC if !USB_G_MULTI_RNDIS
-	select USB_LIBCOMPOSITE
-	select USB_U_SERIAL
-	select USB_F_ACM
+	depends on USB_LIBCOMPOSITE
+	select USB_G_MULTI_REQ_F_ACM
 	help
 	  The Multifunction Composite Gadget provides Ethernet (RNDIS
 	  and/or CDC Ethernet), mass storage and ACM serial link
@@ -984,7 +1094,7 @@ endif # TTY
 
 config USB_G_HID
 	tristate "HID Gadget"
-	select USB_LIBCOMPOSITE
+	depends on USB_LIBCOMPOSITE
 	help
 	  The HID gadget driver provides generic emulation of USB
 	  Human Interface Devices (HID).
@@ -999,7 +1109,7 @@ config USB_G_HID
 config USB_G_DBGP
 	tristate "EHCI Debug Device Gadget"
 	depends on TTY
-	select USB_LIBCOMPOSITE
+	depends on USB_LIBCOMPOSITE
 	help
 	  This gadget emulates an EHCI Debug device. This is useful when you want
 	  to interact with an EHCI Debug Port.
@@ -1032,7 +1142,7 @@ endif
 config USB_G_WEBCAM
 	tristate "USB Webcam Gadget"
 	depends on VIDEO_DEV
-	select USB_LIBCOMPOSITE
+	depends on USB_LIBCOMPOSITE
 	select VIDEOBUF2_VMALLOC
 	help
 	  The Webcam Gadget acts as a composite USB Audio and Video Class
@@ -1042,7 +1152,7 @@ config USB_G_WEBCAM
 	  Say "y" to link the driver statically, or "m" to build a
 	  dynamically linked module called "g_webcam".
 
-endchoice
+endmenu
 
 config USB_CORE_IP_293A
 	boolean "usb core ip version (synophsys)"
