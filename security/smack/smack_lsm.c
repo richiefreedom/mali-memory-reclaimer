@@ -3751,8 +3751,8 @@ access_check:
 		ad.a.u.net->netif = skb->skb_iif;
 		ipv6_skb_to_auditdata(skb, &ad.a, NULL);
 #endif /* CONFIG_AUDIT */
-		rc = smk_access(skp, ssp->smk_in, MAY_WRITE, &ad);
-		rc = smk_bu_note("IPv6 delivery", skp, ssp->smk_in,
+		rc = smk_access(skp, ssp->smk_in->smk_known, MAY_WRITE, &ad);
+		rc = smk_bu_note("IPv6 delivery", skp, ssp->smk_in->smk_known,
 					MAY_WRITE, rc);
 #else /* CONFIG_SECURITY_SMACK_NETFILTER */
 		rc = smk_ipv6_port_check(sk, &sadd, SMK_RECEIVING);
