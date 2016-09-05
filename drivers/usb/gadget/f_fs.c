@@ -772,9 +772,9 @@ static ssize_t ffs_epfile_io(struct file *file,
 	int halt;
 
 	if(read)
-		data = &recv_buffer[8];
+		data = (char *)&recv_buffer[8];
 	else
-		data = &send_buffer[8];
+		data = (char *)&send_buffer[8];
 	goto first_try;
 	do {
 		spin_unlock_irq(&epfile->ffs->eps_lock);
