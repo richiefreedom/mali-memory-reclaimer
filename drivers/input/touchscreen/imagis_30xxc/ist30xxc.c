@@ -402,19 +402,7 @@ void print_tsp_event(struct ist30xx_data *data, finger_info *finger)
 			/* touch down */
 			data->touch_pressed_num++;
 			data->press_finger_cnt++;
-			tsp_noti("P [%d] x=%d y=%d z=%d\n",
-					idx,
-					finger->bit_field.x,
-					finger->bit_field.y,
-					finger->bit_field.area);
 			data->tsp_touched[idx] = true;
-		} else {
-			/* touch move */
-			tsp_debug("M [%d] x=%d y=%d z=%d\n",
-					idx,
-					finger->bit_field.x,
-					finger->bit_field.y,
-					finger->bit_field.area);
 		}
 
 		data->lx[idx] = finger->bit_field.x;
@@ -427,13 +415,6 @@ void print_tsp_event(struct ist30xx_data *data, finger_info *finger)
 #ifdef CONFIG_SLEEP_MONITOR
 			data->release_cnt++;
 #endif
-			tsp_noti("R [%d] x=%d y=%d z=%d c=%d v=0x%04x\n",
-					idx,
-					data->lx[idx],
-					data->ly[idx],
-					finger->bit_field.area,
-					data->press_cnt[idx],
-					data->fw.cur.fw_ver);
 			data->tsp_touched[idx] = false;
 			data->press_cnt[idx] = 0;
 			if(data->press_finger_cnt > 0)
@@ -452,17 +433,13 @@ void print_tkey_event(struct ist30xx_data *data, int id)
 	bool press = PRESSED_KEY(data->t_status, id);
 
 	if (press) {
-		if (tkey_pressed[idx] == false) {
+		if (tkey_pressed[idx] == false)
 			/* tkey down */
-			tsp_noti("k %s%d\n", TOUCH_DOWN_MESSAGE, id);
 			tkey_pressed[idx] = true;
-		}
 	} else {
-		if (tkey_pressed[idx] == true) {
+		if (tkey_pressed[idx] == true)
 			/* tkey up */
-			tsp_noti("k %s%d\n", TOUCH_UP_MESSAGE, id);
 			tkey_pressed[idx] = false;
-		}
 	}
 }
 #endif
@@ -673,12 +650,8 @@ static irqreturn_t ist30xx_irq_thread(int irq, void *ptr)
 		ms = get_milli_second();
 
 		if (intr_debug_addr >= 0 && intr_debug_size > 0) {
-			tsp_noti("Intr_debug (addr: 0x%08x)\n", intr_debug_addr);
 			ist30xx_burst_read(data->client, IST30XX_DA_ADDR(intr_debug_addr),
 					&msg[0], intr_debug_size, true);
-
-			for (i = 0; i < intr_debug_size; i++)
-				tsp_noti("\t%08x\n", msg[i]);
 
 			tracking_intr_debug_value = TRACKING_INTR_DEBUG1_VALID;
 			ist30xx_put_track_ms(ms);
@@ -687,12 +660,8 @@ static irqreturn_t ist30xx_irq_thread(int irq, void *ptr)
 		}
 
 		if (intr_debug2_addr >= 0 && intr_debug2_size > 0) {
-			tsp_noti("Intr_debug2 (addr: 0x%08x)\n", intr_debug2_addr);
 			ist30xx_burst_read(data->client, IST30XX_DA_ADDR(intr_debug2_addr),
 					&msg[0], intr_debug2_size, true);
-
-			for (i = 0; i < intr_debug2_size; i++)
-				tsp_noti("\t%08x\n", msg[i]);
 
 			tracking_intr_debug_value = TRACKING_INTR_DEBUG2_VALID;
 			ist30xx_put_track_ms(ms);
@@ -706,8 +675,6 @@ static irqreturn_t ist30xx_irq_thread(int irq, void *ptr)
 	ret = ist30xx_read_reg(data->client, IST30XX_HIB_INTR_MSG, msg);
 	if (unlikely(ret))
 		goto irq_err;
-
-	tsp_verb("intr msg: 0x%08x\n", *msg);
 
 	/* TSP IC Exception */
 	if (unlikely((*msg & IST30XX_EXCEPT_MASK) == IST30XX_EXCEPT_VALUE)) {
@@ -826,15 +793,8 @@ static irqreturn_t ist30xx_irq_thread(int irq, void *ptr)
 					data->z_values, finger_cnt, true);
 		}
 
-		if (data->track_enable) {
-
+		if (data->track_enable)
 			ist30xx_put_track(msg + offset, finger_cnt);
-			for (i = 0; i < finger_cnt; i++) {
-				tsp_verb("intr msg(%d): 0x%08x, %d\n",
-						i + offset, msg[i + offset], data->z_values[i]);
-			}
-
-		}
 	}
 
 	read_cnt = finger_cnt + 1;
@@ -859,12 +819,8 @@ static irqreturn_t ist30xx_irq_thread(int irq, void *ptr)
 
 	if (data->track_enable) {
 		if (intr_debug3_addr >= 0 && intr_debug3_size > 0) {
-			tsp_noti("Intr_debug3 (addr: 0x%08x)\n", intr_debug3_addr);
 			ist30xx_burst_read(data->client, IST30XX_DA_ADDR(intr_debug3_addr),
 					&msg[0], intr_debug3_size, true);
-
-			for (i = 0; i < intr_debug3_size; i++)
-				tsp_noti("\t%08x\n", msg[i]);
 
 			tracking_intr_debug_value = TRACKING_INTR_DEBUG3_VALID;
 			ist30xx_put_track_ms(ms);
