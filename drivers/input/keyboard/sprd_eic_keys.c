@@ -101,7 +101,6 @@ static irqreturn_t sprd_eic_irq_handle(int irq, void *dev_id)
 #endif
                 input_report_key(this_pdata->input_dev, button->code, button_state_current);
                 input_sync(this_pdata->input_dev);
-                PRINT_INFO("[P] %s\n", button->desc);
 
                 if(1 == button->active_low)
                         irq_set_irq_type(button->irq, IRQF_TRIGGER_HIGH);
@@ -117,7 +116,6 @@ static irqreturn_t sprd_eic_irq_handle(int irq, void *dev_id)
 #endif
                 input_report_key(this_pdata->input_dev, button->code, button_state_current);
                 input_sync(this_pdata->input_dev);
-                PRINT_INFO("[R] %s\n", button->desc);
 
                 if(1 == button->active_low)
                         irq_set_irq_type(button->irq, IRQF_TRIGGER_LOW);
