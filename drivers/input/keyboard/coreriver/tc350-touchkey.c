@@ -1954,8 +1954,6 @@ static irqreturn_t tc300k_interrupt(int irq, void *dev_id)
 		goto out;
 	}
 
-	dev_dbg(&client->dev, "%s: key_value=[0x%x]\n", __func__, key_val);
-
 	for (i = 0 ; i < data->num_key*2; i++) {
 		if ((key_val & data->tsk_ev_val[i].tsk_bitmap)) {
 			input_report_key(data->input_dev,
@@ -1964,10 +1962,6 @@ static irqreturn_t tc300k_interrupt(int irq, void *dev_id)
 
 			if (!data->tsk_ev_val[i].tsk_status)
 				data->release_cnt++;
-
-			dev_info(&client->dev, "%s:[%s] %s\n", __func__,
-				data->tsk_ev_val[i].tsk_status? "P" : "R",
-				data->tsk_ev_val[i].tsk_keyname);
 		}
 	}
 	input_sync(data->input_dev);
