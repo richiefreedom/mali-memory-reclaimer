@@ -221,8 +221,6 @@ static ssize_t key_show(struct device *dev, struct device_attribute *attr, char 
 	else
 		is_key_checked = sprintf(buf, "%s\n", "RELEASE");
 
-	printk("[KEY] Keyshort Press Check ==> keys_pressed : %x\n", keys_pressed);
-
 	return is_key_checked;
 }
 static ssize_t powerkey_show(struct device *dev, struct device_attribute *attr, char *buf)
@@ -232,9 +230,6 @@ static ssize_t powerkey_show(struct device *dev, struct device_attribute *attr, 
 
 	is_key_checked = sprintf(buf, "%s\n",
 		sci_kpd->powerkey_state ? "PRESS" : "RELEASE");
-
-	printk("[KEY] Keyshort Press Check ==> powerKeys_pressed : %ld \n",
-		sci_kpd->powerkey_state);
 
 	return is_key_checked;
 }
@@ -310,25 +305,6 @@ static void dump_keypad_register(void)
 }
 #endif
 
-static void sci_keypad_keydbg(unsigned short key, unsigned short state)
-{
-	const char* key_name[] = {"KEY_VOLUMEUP", "KEY_VOLUMEDOWN",\
-				"KEY_HOME", "KEY_POWER", "UNKNOWN"};
-
-	if (key == KEY_VOLUMEUP)
-		key = 0;
-	else if (key == KEY_VOLUMEDOWN)
-		key = 1;
-	else if (key == KEY_MENU)
-		key = 2;
-	else if (key == KEY_POWER)
-		key = 3;
-	else
-		key = 4;
-
-	printk("%s: [%s] %s\n", __func__, state ? "P":"R", key_name[key]);
-}
-
 static int sci_keypad_check_validity(unsigned short key)
 {
 	if ((key == KEY_VOLUMEUP) || (key == KEY_VOLUMEDOWN) ||\
@@ -356,7 +332,6 @@ static void sci_keypad_report_event(struct sci_keypad_t *sci_kpd, int col, int r
 	input_report_key(sci_kpd->input_dev, key, state);
 	input_sync(sci_kpd->input_dev);
 	sec_debug_check_crash_key(key, state);
-	sci_keypad_keydbg(key, state);
 
 	return;
 }
@@ -443,7 +418,6 @@ static irqreturn_t sci_powerkey_isr(int irq, void *dev_id)
 		/* seems an event is missing, just report it */
 		input_report_key(sci_kpd->input_dev, key, last_value);
 		input_sync(sci_kpd->input_dev);
-		sci_keypad_keydbg(key, !value);
 	}
 
 	if (value) {
@@ -470,7 +444,6 @@ static irqreturn_t sci_powerkey_isr(int irq, void *dev_id)
 	sec_debug_check_crash_key(key, value);
 #endif
 	last_value = value;
-	sci_keypad_keydbg(key, !value);
 
 	return IRQ_HANDLED;
 }
