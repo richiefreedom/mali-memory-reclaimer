@@ -124,11 +124,19 @@ static struct usb_string gfs_strings[] = {
 	{ .s = "FunctionFS + ECM" },
 #endif
 #ifdef CONFIG_USB_FUNCTIONFS_GENERIC
-	{ .s = "FunctionFS" },
+	{ }, /* set dynamically based on module param */
 #endif
 	{  } /* end of list */
 };
 
+#ifdef CONFIG_USB_FUNCTIONFS_GENERIC
+static char *generic_ffs_config_str = "FunctionFS";
+module_param_named(generic_ffs_config_str,
+		   generic_ffs_config_str,
+		   charp, S_IRUGO);
+MODULE_PARM_DESC(generic_ffs_config_str,
+		 "Configuration string of generic FFS config");
+#endif
 static struct usb_gadget_strings *gfs_dev_strings[] = {
 	&(struct usb_gadget_strings) {
 		.language	= 0x0409,	/* en-us */
@@ -186,6 +194,14 @@ static int __init gfs_init(void)
 
 	ENTER();
 
+#ifdef CONFIG_USB_FUNCTIONFS_GENERIC
+	/* Find first (but not last) config with a NULL str */
+	for (i = 0; i < ARRAY_SIZE(gfs_strings) - 1 ; ++i)
+		if (!gfs_strings[i].s) {
+			gfs_strings[i].s = generic_ffs_config_str;
+			break;
+		}
+#endif
 	if (!func_num) {
 		gfs_single_func = true;
 		func_num = 1;
