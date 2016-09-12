@@ -137,6 +137,13 @@ module_param_named(generic_ffs_config_str,
 MODULE_PARM_DESC(generic_ffs_config_str,
 		 "Configuration string of generic FFS config");
 #endif
+
+static int bmAttrs_overwrite = -1;
+
+module_param_named(bmAttrs_overwrite, bmAttrs_overwrite, int, 0644);
+MODULE_PARM_DESC(bmAttrs_overwrite,
+		 "Overwrite default bmAttrributes value. -1 to use default.");
+
 static struct usb_gadget_strings *gfs_dev_strings[] = {
 	&(struct usb_gadget_strings) {
 		.language	= 0x0409,	/* en-us */
@@ -202,6 +209,11 @@ static int __init gfs_init(void)
 			break;
 		}
 #endif
+	if (bmAttrs_overwrite > 255) {
+		pr_info("Invalid value of bmAttributes for configs.");
+		return -EINVAL;
+	}
+
 	if (!func_num) {
 		gfs_single_func = true;
 		func_num = 1;
@@ -395,7 +407,9 @@ static int gfs_bind(struct usb_composite_dev *cdev)
 		c->c.label			= gfs_strings[sid].s;
 		c->c.iConfiguration		= gfs_strings[sid].id;
 		c->c.bConfigurationValue	= 1 + i;
-		c->c.bmAttributes		= USB_CONFIG_ATT_SELFPOWER;
+		c->c.bmAttributes		= bmAttrs_overwrite >= 0 ?
+			(unsigned char)bmAttrs_overwrite
+			: USB_CONFIG_ATT_SELFPOWER;
 
 		ret = usb_add_config(cdev, &c->c, gfs_do_config);
 		if (unlikely(ret < 0))
@@ -456,7 +470,7 @@ static int gfs_do_config(struct usb_configuration *c)
 	if (missing_funcs)
 		return -ENODEV;
 
-	if (gadget_is_otg(c->cdev->gadget)) {
+	if (gadget_is_otg(c->cdev->gadget) && bmAttrs_overwrite < 0) {
 		c->descriptors = gfs_otg_desc;
 		c->bmAttributes |= USB_CONFIG_ATT_WAKEUP;
 	}
