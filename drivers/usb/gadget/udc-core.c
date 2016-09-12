@@ -342,8 +342,13 @@ static int udc_bind_to_driver(struct usb_udc *udc, struct usb_gadget_driver *dri
 	 * the call to usb_gadget_connect bellow to avoid enabling the
 	 * pullup before userspace is ready.
 	 *
-	 * usb_gadget_connect(udc->gadget);
+	 * HACK: Apart from android and slp gadget we would like to use
+	 * also standard mainline gadgets with dummy_hcd. Those gadgets
+	 * expects to be connected right after bind().
 	 */
+	if (strstr(dev_name(&udc->dev), "dummy_udc") != NULL)
+		usb_gadget_connect(udc->gadget);
+
 
 	kobject_uevent(&udc->dev.kobj, KOBJ_CHANGE);
 	return 0;
