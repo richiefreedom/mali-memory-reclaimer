@@ -995,6 +995,7 @@ static ssize_t kmsg_read(struct log_buffer *log_b, struct file *file,
 	char cont = '-';
 	size_t len;
 	ssize_t ret;
+	const int prime = (log_b == &log_buf);
 
 	p = user->buf;
 	e = user->buf + sizeof(user->buf);
@@ -1064,7 +1065,10 @@ static ssize_t kmsg_read(struct log_buffer *log_b, struct file *file,
 	for (i = 0; i < msg->text_len; i++) {
 		unsigned char c = log_text(msg)[i];
 
-		append_char(&p, e, c);
+		if (prime && (c < ' ' || c >= 127 || c == '\\'))
+			p += scnprintf(p, e - p, "\\x%02x", c);
+		else
+			append_char(&p, e, c);
 	}
 
 	/*
@@ -1073,7 +1077,8 @@ static ssize_t kmsg_read(struct log_buffer *log_b, struct file *file,
 	 * to security: else one could forge dictionary tags through the message
 	 * such as "text\n _PID=123"
 	 */
-	append_char(&p, e, '\0');
+	if (!prime)
+		append_char(&p, e, '\0');
 	append_char(&p, e, '\n');
 
 	if (msg->dict_len) {
@@ -1090,6 +1095,11 @@ static ssize_t kmsg_read(struct log_buffer *log_b, struct file *file,
 			if (c == '\0') {
 				append_char(&p, e, '\n');
 				line = true;
+				continue;
+			}
+
+			if (prime && (c < ' ' || c >= 127 || c == '\\')) {
+				p += scnprintf(p, e - p, "\\x%02x", c);
 				continue;
 			}
 
