@@ -57,7 +57,7 @@ struct mutex mali_idr_mutex;
 int mali_memory_manager_init(struct mali_allocation_manager *mgr)
 {
 	/* init Locks */
-	rwlock_init(&mgr->vm_lock);
+	init_rwsem(&mgr->vm_lock);
 	mutex_init(&mgr->list_mutex);
 
 	/* init link */

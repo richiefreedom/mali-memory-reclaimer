@@ -58,7 +58,7 @@ int mali_vma_offset_add(struct mali_allocation_manager *mgr,
 			struct mali_vma_node *node)
 {
 	int ret = 0;
-	write_lock(&mgr->vm_lock);
+	down_write(&mgr->vm_lock);
 
 	if (node->vm_node.allocated) {
 		goto out;
@@ -69,7 +69,7 @@ int mali_vma_offset_add(struct mali_allocation_manager *mgr,
 	node->vm_node.allocated = 1;
 
 out:
-	write_unlock(&mgr->vm_lock);
+	up_write(&mgr->vm_lock);
 	return ret;
 }
 
@@ -79,13 +79,13 @@ out:
 void mali_vma_offset_remove(struct mali_allocation_manager *mgr,
 			    struct mali_vma_node *node)
 {
-	write_lock(&mgr->vm_lock);
+	down_write(&mgr->vm_lock);
 
 	if (node->vm_node.allocated) {
 		rb_erase(&node->vm_rb, &mgr->allocation_mgr_rb);
 		memset(&node->vm_node, 0, sizeof(node->vm_node));
 	}
-	write_unlock(&mgr->vm_lock);
+	up_write(&mgr->vm_lock);
 }
 
 /**
@@ -97,7 +97,8 @@ struct mali_vma_node *mali_vma_offset_search(struct mali_allocation_manager *mgr
 	struct mali_vma_node *node, *best;
 	struct rb_node *iter;
 	unsigned long offset;
-	read_lock(&mgr->vm_lock);
+
+	down_read(&mgr->vm_lock);
 
 	iter = mgr->allocation_mgr_rb.rb_node;
 	best = NULL;
@@ -120,7 +121,7 @@ struct mali_vma_node *mali_vma_offset_search(struct mali_allocation_manager *mgr
 		if (offset <= start + pages)
 			best = NULL;
 	}
-	read_unlock(&mgr->vm_lock);
+	up_read(&mgr->vm_lock);
 
 	return best;
 }

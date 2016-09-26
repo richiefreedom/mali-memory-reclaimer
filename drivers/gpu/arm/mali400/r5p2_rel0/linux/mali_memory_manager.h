@@ -22,7 +22,7 @@
 #include "mali_uk_types.h"
 
 struct mali_allocation_manager {
-	rwlock_t vm_lock;
+	struct rw_semaphore vm_lock;
 	struct rb_root allocation_mgr_rb;
 	struct list_head head;
 	struct mutex list_mutex;
