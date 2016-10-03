@@ -82,6 +82,7 @@ License:        GPL-2.0
 Summary:        Linux support kernel map and etc for other package
 Group:          System/Kernel
 Provides:       kernel-devel-tizen-dev
+Provides:       kernel-devel-tizen
 
 %description -n kernel-devel-3.10-sc7730
 This package provides kernel map and etc information.
@@ -168,6 +169,9 @@ for i in %{BOARDS}; do
 
 	mv %_builddir/kernel-devel-$target %{buildroot}/boot/kernel/devel/kernel-devel-$i
 done
+
+# Assumed that actually there is one board
+ln -s kernel-devel-$i %{buildroot}/boot/kernel/devel/tizen-devel
 
 find %{buildroot}/boot/kernel/ -name "*.h" -exec chmod 644 {} \;
 
