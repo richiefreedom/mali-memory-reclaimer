@@ -8423,6 +8423,7 @@ static const struct mgmt_handler tizen_mgmt_handlers[] = {
 	{ set_voice_setting,       false, MGMT_SET_VOICE_SETTING_SIZE},
 	{ get_adv_tx_power,       false, MGMT_GET_ADV_TX_POWER_SIZE},
 	{ enable_bt_6lowpan,       false, MGMT_ENABLE_BT_6LOWPAN_SIZE },
+	{ connect_bt_6lowpan,      false, MGMT_CONNECT_6LOWPAN_SIZE },
 	{ disconnect_bt_6lowpan,   false, MGMT_DISCONNECT_6LOWPAN_SIZE },
 	{ read_maximum_le_data_length, false, MGMT_LE_READ_MAXIMUM_DATA_LENGTH_SIZE },
 	{ write_host_suggested_le_data_length, false,
