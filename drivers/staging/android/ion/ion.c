@@ -44,6 +44,10 @@
 #include "ion_priv.h"
 #include "compat_ion.h"
 
+#ifdef CONFIG_ION_SPRD
+#define DEBUG_HEAP_SHRINKER
+#endif
+
 /**
  * struct ion_device - the metadata of the ion device node
  * @dev:		the actual misc device
