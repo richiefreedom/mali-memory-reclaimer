@@ -740,7 +740,9 @@ STATIC_FUNC void sdhost_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 			if (MMC_POWER_OFF == ios->power_mode) {
 				_signalVoltageOnOff(host, 0);
 				if (host->SD_pwr) {
+					spin_unlock_irqrestore(&host->lock, flags);
 					mmc_regulator_set_ocr(host->mmc, host->SD_pwr, 0);
+					spin_lock_irqsave(&host->lock, flags);
 				}
 				_resetIOS(host);
 				host->ios.power_mode = ios->power_mode;
@@ -748,7 +750,9 @@ STATIC_FUNC void sdhost_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 				   || (MMC_POWER_UP == ios->power_mode)
 			    ) {
 				if (host->SD_pwr) {
+					spin_unlock_irqrestore(&host->lock, flags);
 					mmc_regulator_set_ocr(host->mmc, host->SD_pwr, ios->vdd);
+					spin_lock_irqsave(&host->lock, flags);
 				}
 				_signalVoltageOnOff(host, 1);
 				host->ios.power_mode = ios->power_mode;
@@ -761,7 +765,9 @@ STATIC_FUNC void sdhost_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		if (ios->vdd != host->ios.vdd) {
 			if (host->SD_pwr) {
 				printk("sdhost %s 3.0 %d!\n", host->deviceName, ios->vdd);
+				spin_unlock_irqrestore(&host->lock, flags);
 				mmc_regulator_set_ocr(host->mmc, host->SD_pwr, ios->vdd);
+				spin_lock_irqsave(&host->lock, flags);
 			}
 			host->ios.vdd = ios->vdd;
 		}
