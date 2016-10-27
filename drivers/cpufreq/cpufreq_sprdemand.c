@@ -88,6 +88,11 @@ struct unplug_work_info {
 	struct dbs_data *dbs_data;
 };
 static DEFINE_PER_CPU(struct unplug_work_info, uwi);
+
+static DEFINE_SPINLOCK(g_lock);
+static unsigned int percpu_total_load[CONFIG_NR_CPUS] = {0};
+static unsigned int percpu_check_count[CONFIG_NR_CPUS] = {0};
+static int cpu_score = 0;
 #endif
 
 struct delayed_work plugin_work;
@@ -97,13 +102,6 @@ struct work_struct plugin_all_work;
 struct work_struct unplug_all_work;
 static int cpu_num_limit_temp;
 static void sprd_thm_unplug_cpu(struct work_struct *work);
-
-static DEFINE_PER_CPU(struct unplug_work_info, uwi);
-
-static DEFINE_SPINLOCK(g_lock);
-static unsigned int percpu_total_load[CONFIG_NR_CPUS] = {0};
-static unsigned int percpu_check_count[CONFIG_NR_CPUS] = {0};
-static int cpu_score = 0;
 
 /* FIXME. default touch boost is enabled */
 #define CONFIG_TOUCH_BOOST
