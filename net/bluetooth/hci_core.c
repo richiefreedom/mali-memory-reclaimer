@@ -1095,7 +1095,9 @@ void hci_discovery_set_state(struct hci_dev *hdev, int state)
 
 	switch (state) {
 	case DISCOVERY_STOPPED:
+#ifndef CONFIG_TIZEN_WIP
 		hci_update_background_scan(hdev);
+#endif
 
 		if (old_state != DISCOVERY_STARTING)
 			mgmt_discovering(hdev, 0);
@@ -2903,7 +2905,11 @@ static void le_scan_disable_work_complete(struct hci_dev *hdev, u8 status,
 	switch (hdev->discovery.type) {
 	case DISCOV_TYPE_LE:
 		hci_dev_lock(hdev);
+#ifdef CONFIG_TIZEN_WIP
+		hci_le_discovery_set_state(hdev, DISCOVERY_STOPPED);
+#else
 		hci_discovery_set_state(hdev, DISCOVERY_STOPPED);
+#endif
 		hci_dev_unlock(hdev);
 		break;
 
@@ -2922,7 +2928,11 @@ static void le_scan_disable_work_complete(struct hci_dev *hdev, u8 status,
 		err = hci_req_run(&req, inquiry_complete);
 		if (err) {
 			BT_ERR("Inquiry request failed: err %d", err);
+#ifdef CONFIG_TIZEN_WIP
+			hci_le_discovery_set_state(hdev, DISCOVERY_STOPPED);
+#else
 			hci_discovery_set_state(hdev, DISCOVERY_STOPPED);
+#endif
 		}
 
 		hci_dev_unlock(hdev);

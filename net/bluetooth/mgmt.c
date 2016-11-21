@@ -1443,6 +1443,11 @@ static int clean_up_hci_state(struct hci_dev *hdev)
 	if (!err && discov_stopped)
 		hci_discovery_set_state(hdev, DISCOVERY_STOPPING);
 
+#ifdef CONFIG_TIZEN_WIP
+	if (!err && discov_stopped)
+		hci_le_discovery_set_state(hdev, DISCOVERY_STOPPING);
+#endif
+
 	return err;
 }
 
