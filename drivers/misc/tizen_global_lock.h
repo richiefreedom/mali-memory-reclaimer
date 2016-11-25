@@ -10,14 +10,24 @@
  * by the Free Software Foundation.
  */
 
-#ifndef __TGL__
-#define __TGL__
+#ifndef __TIZEN_GLOBAL_LOOK_H__
+#define __TIZEN_GLOBAL_LOOK_H__
 
 #define TGL_IOCTL_BASE		0x32
 #define TGL_IO(nr)		_IO(TGL_IOCTL_BASE, nr)
 #define TGL_IOR(nr, type)	_IOR(TGL_IOCTL_BASE, nr, type)
 #define TGL_IOW(nr, type)	_IOW(TGL_IOCTL_BASE, nr, type)
 #define TGL_IOWR(nr, type)	_IOWR(TGL_IOCTL_BASE, nr, type)
+
+/**
+ * struct tgl_ver_data - tgl version data structure
+ * @major: major version
+ * @minor: minor version
+ */
+struct tgl_ver_data {
+	unsigned int major;
+	unsigned int minor;
+};
 
 /**
  * struct tgl_reg_data - tgl register data structure
@@ -65,7 +75,8 @@ struct tgl_usr_data {
 };
 
 enum {
-	_TGL_REGISTER = 1,
+	_TGL_GET_VERSION,
+	_TGL_REGISTER,
 	_TGL_UNREGISTER,
 	_TGL_LOCK,
 	_TGL_UNLOCK,
@@ -73,6 +84,8 @@ enum {
 	_TGL_GET_DATA,
 };
 
+/* get version information */
+#define TGL_IOCTL_GET_VERSION	TGL_IOR(_TGL_GET_VERSION, struct tgl_ver_data)
 /* register key */
 #define TGL_IOCTL_REGISTER	TGL_IOW(_TGL_REGISTER, struct tgl_reg_data)
 /* unregister key */
@@ -86,4 +99,4 @@ enum {
 /* get user data with key */
 #define TGL_IOCTL_GET_DATA	TGL_IOR(_TGL_GET_DATA, struct tgl_usr_data)
 
-#endif	/* __TGL__ */
+#endif	/* __TIZEN_GLOBAL_LOOK_H__ */

@@ -27,6 +27,9 @@
 
 #define TGL_DEV_NAME		"tgl"
 
+#define TGL_VERSION_MAJOR	1
+#define TGL_VERSION_MINOR	1
+
 #define TGL_HASH_BITS		4
 #define TGL_HASH_BUCKETS	(1 << TGL_HASH_BITS)
 
@@ -35,11 +38,14 @@
 /**
  * struct tgl_device - tgl device structure
  * @dev: (misc )device pointer
+ * @version: version data
  * @heads: hash heads for global node data
  * @lock: lock for hash heads
  */
 static struct tgl_device {
 	struct device *dev;
+
+	struct tgl_ver_data version;
 
 	struct hlist_head heads[TGL_HASH_BUCKETS];
 	struct mutex lock;
@@ -406,6 +412,18 @@ static struct tgl_node *tgl_find_node(struct hlist_head *heads,
 	return found;
 }
 
+static int tgl_get_version(struct tgl_session *session, void __user *arg)
+{
+	struct tgl_ver_data ver_data;
+
+	memcpy(&ver_data, &tgl.version, sizeof(ver_data));
+
+	if (copy_to_user(arg, &ver_data, sizeof(ver_data)))
+		return -EFAULT;
+
+	return 0;
+}
+
 static int tgl_register(struct tgl_session *session, void __user *arg)
 {
 	struct tgl_reg_data reg_data;
@@ -596,7 +614,6 @@ static int tgl_lock(struct tgl_session *session, void __user *arg)
 	}
 
 	/* add to waiter */
-	INIT_LIST_HEAD(&wait_node.node);
 	mutex_lock(&data->lock);
 	list_add_tail(&wait_node.node, &data->list);
 	mutex_unlock(&data->lock);
@@ -673,7 +690,7 @@ static int tgl_unlock(struct tgl_session *session, void __user *arg)
 		node = tgl_find_node(session->heads, lock_data.key);
 		if (node) {
 			/* check waiter */
-			tgl_remove_wait_node(data, session);
+			tgl_remove_wait_node(node->data, session);
 			mutex_unlock(&session->lock);
 			return 0;
 		}
@@ -766,6 +783,12 @@ static long tgl_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	int ret;
 
 	switch (cmd) {
+	case TGL_IOCTL_GET_VERSION:
+		ret = tgl_get_version(session, (void __user *)arg);
+		if (ret)
+			dev_err(tgl.dev,
+				"%s: failed to get version[%d]\n",
+				__func__, ret);
 	case TGL_IOCTL_REGISTER:
 		ret = tgl_register(session, (void __user *)arg);
 		if (ret)
@@ -807,8 +830,8 @@ static long tgl_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		break;
 	default:
 		dev_err(tgl.dev,
-			"%s: failed to call ioctl: tgid[%d]\n",
-			__func__, task_tgid_nr(current));
+			"%s: failed to call ioctl: tgid[%d]:0x%x\n",
+			__func__, task_tgid_nr(current), cmd);
 		ret = -ENOTTY;
 		break;
 	}
@@ -834,7 +857,11 @@ static struct miscdevice tgl_misc_device = {
 
 static int __init tgl_init(void)
 {
+	struct tgl_ver_data *version = &tgl.version;
 	int ret, i;
+
+	version->major = TGL_VERSION_MAJOR;
+	version->minor = TGL_VERSION_MINOR;
 
 	ret = misc_register(&tgl_misc_device);
 	if (ret) {
