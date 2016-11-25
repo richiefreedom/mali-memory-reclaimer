@@ -614,12 +614,6 @@ config SPRD_SRT_KO
 	depends on SPRD_SRT
 	default m
 
-config SLP_GLOBAL_LOCK
-	bool "Enable Global Lock"
-	default n
-	---help---
-	  This supports global lock feature for SLP.
-
 config TIZEN_GLOBAL_LOCK
 	bool "Enable Tizen Global Lock"
 	help

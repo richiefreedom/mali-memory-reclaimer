@@ -72,7 +72,6 @@ obj-$(CONFIG_SPRD_CODA7L)	+= sprd_coda7l/
 obj-$(CONFIG_BENCHMARK)  += benchmark/
 obj-$(CONFIG_BOOT_PERF)  += bootperf/
 obj-$(CONFIG_SPRD_BOARD_TYPE)	+= sprd_board_type.o
-obj-$(CONFIG_SLP_GLOBAL_LOCK)	+= slp_global_lock.o
 obj-$(CONFIG_TIZEN_GLOBAL_LOCK)	+= tizen_global_lock.o
 obj-$(CONFIG_SPRD_TKS_DRIVER)   += sprd_tks.o
 obj-$(CONFIG_SDIODEV)     += sdiodev/
