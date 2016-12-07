@@ -1413,19 +1413,13 @@ ssize_t ist30xx_fw_version_show(struct device *dev,
 			data->fw.cur.test_ver, data->fw.cur.core_ver);
 
 #if IST30XX_INTERNAL_BIN
-	{
-		char msg[128];
-
-		ist30xx_get_update_info(data, data->fw.buf, data->fw.buf_size);
-
-		count += snprintf(msg, sizeof(msg),
-				 " Header - main: %x, fw: %x, test: %x, core: %x\n",
-				ist30xx_parse_ver(data, FLAG_MAIN, data->fw.buf),
-				ist30xx_parse_ver(data, FLAG_FW, data->fw.buf),
-				ist30xx_parse_ver(data, FLAG_TEST, data->fw.buf),
-				ist30xx_parse_ver(data, FLAG_CORE, data->fw.buf));
-		strncat(buf, msg, sizeof(msg));
-	}
+	ist30xx_get_update_info(data, data->fw.buf, data->fw.buf_size);
+	count += sprintf(buf + count,
+			 "Header - main: %x, fw: %x, test: %x, core: %x\n",
+			ist30xx_parse_ver(data, FLAG_MAIN, data->fw.buf),
+			ist30xx_parse_ver(data, FLAG_FW, data->fw.buf),
+			ist30xx_parse_ver(data, FLAG_TEST, data->fw.buf),
+			ist30xx_parse_ver(data, FLAG_CORE, data->fw.buf));
 #endif
 
 	return count;

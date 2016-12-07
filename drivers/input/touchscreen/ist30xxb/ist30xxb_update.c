@@ -1305,17 +1305,12 @@ ssize_t ist30xx_fw_version(struct device *dev, struct device_attribute *attr,
 			ts_data->chip_id, ts_data->fw.core_ver, ts_data->fw.param_ver);
 
 #if IST30XX_INTERNAL_BIN
-	{
-		char msg[128];
+	ist30xx_get_update_info(ts_data, ts_data->fw.buf, ts_data->fw.buf_size);
 
-		ist30xx_get_update_info(ts_data, ts_data->fw.buf, ts_data->fw.buf_size);
-
-		count += snprintf(msg, sizeof(msg),
-				  " Header - f/w ver: 0x%x, param ver: 0x%x\r\n",
-				  ist30xx_parse_ver(FLAG_FW, ts_data->fw.buf),
-				  ist30xx_parse_ver(FLAG_PARAM, ts_data->fw.buf));
-		strncat(buf, msg, sizeof(msg));
-	}
+	count += snprintf(buf + count,
+			  "Header - f/w ver: 0x%x, param ver: 0x%x\r\n",
+			  ist30xx_parse_ver(FLAG_FW, ts_data->fw.buf),
+			  ist30xx_parse_ver(FLAG_PARAM, ts_data->fw.buf));
 #endif
 
 	return count;

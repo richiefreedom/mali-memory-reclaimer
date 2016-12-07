@@ -120,11 +120,8 @@ int ist30xx_get_key_sensitivity(struct ist30xx_data *data, int id)
 /* Factory CMD function */
 static void set_default_result(struct sec_factory *sec)
 {
-	char delim = ':';
-
 	memset(sec->cmd_result, 0, ARRAY_SIZE(sec->cmd_result));
-	memcpy(sec->cmd_result, sec->cmd, strlen(sec->cmd));
-	strncat(sec->cmd_result, &delim, CMD_STATE_RUNNING);
+	snprintf(sec->cmd_result, SEC_CMD_RESULT_STR_LEN, "%s:", sec->cmd);
 }
 
 static void set_cmd_result(struct sec_factory *sec, char *buf, int len)

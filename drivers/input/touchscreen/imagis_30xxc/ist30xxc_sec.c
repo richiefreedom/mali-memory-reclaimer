@@ -139,11 +139,8 @@ int ist30xx_get_key_sensitivity(struct ist30xx_data *data, int id)
 /* Factory CMD function */
 static void set_default_result(struct sec_factory *sec)
 {
-	char delim = ':';
-
 	memset(sec->cmd_result, 0, sec->cmd_result_length);
-	memcpy(sec->cmd_result, sec->cmd, strlen(sec->cmd));
-	strncat(sec->cmd_result, &delim, CMD_STATE_RUNNING);
+	snprintf(sec->cmd_result, sec->cmd_result_length, "%s:", sec->cmd);
 }
 
 static void set_cmd_result(struct sec_factory *sec, char *buf, int len)
@@ -1766,7 +1763,7 @@ static ssize_t show_cmd_list(struct device *dev, struct device_attribute
 
 	while(strncmp(tsp_cmds[ii].cmd_name, "not_support_cmd", 16) != 0) {
 		snprintf(temp, COMMAND_LENGTH, "%s\n", tsp_cmds[ii].cmd_name);
-		strncat(buffer, temp, COMMAND_LENGTH);
+		strlcat(buffer, temp, sizeof(buffer));
 		ii++;
 	}
 

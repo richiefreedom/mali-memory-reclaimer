@@ -1528,7 +1528,6 @@ ssize_t ist30xx_fw_version_show(struct device *dev,
 
 #if IST30XX_INTERNAL_BIN
 	{
-		char msg[128];
 		const struct firmware *firmware = NULL;
 		struct ist30xx_fw *fw = &data->fw;
 		int ret;
@@ -1545,15 +1544,13 @@ ssize_t ist30xx_fw_version_show(struct device *dev,
 		}
 
 		ret = ist30xx_get_update_info(data, data->fw.buf, data->fw.buf_size);
-		if (ret == 0) {
-			count += snprintf(msg, sizeof(msg),
-					" Header - main: %x, fw: %x, test: %x, core: %x\n",
+		if (ret == 0)
+			count += sprintf(buf + count,
+					"Header - main: %x, fw: %x, test: %x, core: %x\n",
 					ist30xx_parse_ver(data, FLAG_MAIN, data->fw.buf),
 					ist30xx_parse_ver(data, FLAG_FW, data->fw.buf),
 					ist30xx_parse_ver(data, FLAG_TEST, data->fw.buf),
 					ist30xx_parse_ver(data, FLAG_CORE, data->fw.buf));
-			strncat(buf, msg, sizeof(msg));
-		}
 
 		if (data->dt_data->fw_bin && firmware) {
 			release_firmware(firmware);
