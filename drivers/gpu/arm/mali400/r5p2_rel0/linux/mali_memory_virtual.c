@@ -89,16 +89,26 @@ void mali_vma_offset_remove(struct mali_allocation_manager *mgr,
 }
 
 /**
+ * mali_vma_offset_remove() - Remove offset node from RB tree
+ */
+void mali_vma_offset_remove_nomemset(struct mali_allocation_manager *mgr,
+			    struct mali_vma_node *node)
+{
+	down_write(&mgr->vm_lock);
+	if (node->vm_node.allocated)
+		rb_erase(&node->vm_rb, &mgr->allocation_mgr_rb);
+	up_write(&mgr->vm_lock);
+}
+
+/**
 * mali_vma_offset_search - Search the node in RB tree
 */
-struct mali_vma_node *mali_vma_offset_search(struct mali_allocation_manager *mgr,
+struct mali_vma_node *_mali_vma_offset_search(struct mali_allocation_manager *mgr,
 		unsigned long start, unsigned long pages)
 {
 	struct mali_vma_node *node, *best;
 	struct rb_node *iter;
 	unsigned long offset;
-
-	down_read(&mgr->vm_lock);
 
 	iter = mgr->allocation_mgr_rb.rb_node;
 	best = NULL;
@@ -121,8 +131,38 @@ struct mali_vma_node *mali_vma_offset_search(struct mali_allocation_manager *mgr
 		if (offset <= start + pages)
 			best = NULL;
 	}
-	up_read(&mgr->vm_lock);
 
 	return best;
 }
 
+struct mali_vma_node *mali_vma_offset_search(struct mali_allocation_manager *mgr,
+		unsigned long start, unsigned long pages)
+{
+	struct mali_vma_node *ret;
+
+	down_read(&mgr->vm_lock);
+	ret = _mali_vma_offset_search(mgr, start, pages);
+	up_read(&mgr->vm_lock);
+
+	return ret;
+}
+
+int mali_vma_for_each_data(struct mali_allocation_manager *manager,
+	int (*function)(struct mali_vma_node *vma_node, void *data),
+	void *data)
+{
+	struct mali_vma_node *vma_node;
+	struct rb_node *rb_node;
+	int ret = 0;
+
+	down_read(&manager->vm_lock);
+	for (rb_node = rb_first(&manager->allocation_mgr_rb);
+			rb_node; rb_node = rb_next(rb_node)) {
+		vma_node = rb_entry(rb_node, struct mali_vma_node, vm_rb);
+		if (function(vma_node, data))
+			ret = -EINVAL;
+	}
+	up_read(&manager->vm_lock);
+
+	return ret;
+}
