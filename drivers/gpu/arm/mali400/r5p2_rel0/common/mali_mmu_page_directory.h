@@ -87,6 +87,10 @@ struct mali_page_directory {
 _mali_osk_errcode_t mali_mmu_pagedir_map(struct mali_page_directory *pagedir, u32 mali_address, u32 size);
 _mali_osk_errcode_t mali_mmu_pagedir_unmap(struct mali_page_directory *pagedir, u32 mali_address, u32 size);
 
+_mali_osk_errcode_t mali_mmu_pagedir_unmap_for_pagefault(struct mali_page_directory *pagedir,
+							 u32 mali_address,
+							 u32 size);
+
 /* Back virtual address space with actual pages. Assumes input is contiguous and 4k aligned. */
 void mali_mmu_pagedir_update(struct mali_page_directory *pagedir, u32 mali_address,
 			     mali_dma_addr phys_address, u32 size, u32 permission_bits);

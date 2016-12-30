@@ -156,6 +156,81 @@ _mali_osk_errcode_t mali_mmu_pagedir_map(struct mali_page_directory *pagedir, u3
 	return _MALI_OSK_ERR_OK;
 }
 
+/*
+ * Toggle page fault on/off for each PTE for given address space.
+ */
+static void mali_mmu_pte_toggle_pagefault(mali_io_address page_table,
+						u32 mali_address,
+						u32 size,
+						bool pagefault)
+{
+	int i;
+	u32 val;
+	const int first_pte = MALI_MMU_PTE_ENTRY(mali_address);
+	const int last_pte = MALI_MMU_PTE_ENTRY(mali_address + size - 1);
+
+	for (i = first_pte; i <= last_pte; i++) {
+		val = _mali_osk_mem_ioread32(page_table, i * sizeof(u32));
+		if (pagefault) {
+			val &= ~MALI_MMU_FLAGS_READ_PERMISSION;
+			val &= ~MALI_MMU_FLAGS_WRITE_PERMISSION;
+		} else {
+			val |= MALI_MMU_FLAGS_READ_PERMISSION;
+			val |= MALI_MMU_FLAGS_WRITE_PERMISSION;
+		}
+		_mali_osk_mem_iowrite32_relaxed(page_table, i * sizeof(u32), val);
+	}
+}
+
+/*
+ * Mark mali buffer for page faults.
+ *
+ * One PDE may be used for multiple buffers, so it cannot be marked/unmarked
+ * because re-mapping would mess up with other buffers.
+ * So instead mark each PTE for page faults by removing READ and WRITE
+ * permissions.
+ *
+ *
+ * TODO: Is other type of buffers used? Like buffer with only READ or only
+ * WRITE permission? If yes, then this information should be stored
+ * because re-mapping would bring back wrong permission.
+ */
+_mali_osk_errcode_t mali_mmu_pagedir_unmap_for_pagefault(struct mali_page_directory *pagedir,
+							 u32 mali_address,
+							 u32 size)
+{
+	const int first_pde = MALI_MMU_PDE_ENTRY(mali_address);
+	const int last_pde = MALI_MMU_PDE_ENTRY(mali_address + size - 1);
+	u32 left = size;
+	int i;
+
+	/* For all page directory entries in range. */
+	for (i = first_pde; i <= last_pde; i++) {
+		u32 size_in_pde, offset;
+
+		/* Offset into page table, 0 if mali_address is 4MiB aligned */
+		offset = (mali_address & (MALI_MMU_VIRTUAL_PAGE_SIZE - 1));
+		if (left < MALI_MMU_VIRTUAL_PAGE_SIZE - offset) {
+			size_in_pde = left;
+		} else {
+			size_in_pde = MALI_MMU_VIRTUAL_PAGE_SIZE - offset;
+		}
+
+		mali_mmu_pte_toggle_pagefault(pagedir->page_entries_mapped[i],
+						mali_address, size_in_pde, true);
+		MALI_DEBUG_PRINT(4, ("Unmapped for page fault: 0x%x\n", mali_address));
+
+		left -= size_in_pde;
+		mali_address += size_in_pde;
+	}
+	_mali_osk_write_mem_barrier();
+
+	/* TODO: Optimize, invalidate only changed PTEs. */
+	mali_l2_cache_invalidate_all();
+
+	MALI_SUCCESS;
+}
+
 MALI_STATIC_INLINE void mali_mmu_zero_pte(mali_io_address page_table, u32 mali_address, u32 size)
 {
 	int i;
