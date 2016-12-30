@@ -2187,7 +2187,7 @@ static void mali_executor_notify_core_change(u32 num_cores)
 			}
 		}
 
-		mali_session_lock();
+		mali_session_lock(_MALI_OSK_LOCKMODE_RO);
 
 		/* number of sessions will not change while we hold the lock */
 		num_sessions_with_lock = mali_session_get_count();
@@ -2206,7 +2206,7 @@ static void mali_executor_notify_core_change(u32 num_cores)
 			done = MALI_TRUE;
 		}
 
-		mali_session_unlock();
+		mali_session_unlock(_MALI_OSK_LOCKMODE_RO);
 
 		/* Delete any remaining/unused notification objects */
 		for (; used_notification_objects < num_sessions_alloc; used_notification_objects++) {

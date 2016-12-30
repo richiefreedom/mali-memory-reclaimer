@@ -1161,13 +1161,13 @@ static int timeline_debugfs_show(struct seq_file *s, void *private_data)
 
 	seq_printf(s, "timeline system info: \n=================\n\n");
 
-	mali_session_lock();
+	mali_session_lock(_MALI_OSK_LOCKMODE_RO);
 	MALI_SESSION_FOREACH(session, tmp, link) {
 		seq_printf(s, "session %d <%p> start:\n", session_seq, session);
 		mali_timeline_debug_print_system(session->timeline_system, s);
 		seq_printf(s, "session %d end\n\n\n", session_seq++);
 	}
-	mali_session_unlock();
+	mali_session_unlock(_MALI_OSK_LOCKMODE_RO);
 
 	return 0;
 }

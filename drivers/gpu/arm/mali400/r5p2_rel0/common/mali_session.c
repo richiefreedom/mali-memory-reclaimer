@@ -19,13 +19,13 @@
 _MALI_OSK_LIST_HEAD(mali_sessions);
 static u32 mali_session_count = 0;
 
-_mali_osk_spinlock_irq_t *mali_sessions_lock = NULL;
+_mali_osk_mutex_rw_t *mali_sessions_lock = NULL;
 
 _mali_osk_errcode_t mali_session_initialize(void)
 {
 	_MALI_OSK_INIT_LIST_HEAD(&mali_sessions);
 
-	mali_sessions_lock = _mali_osk_spinlock_irq_init(
+	mali_sessions_lock = _mali_osk_mutex_rw_init(
 				     _MALI_OSK_LOCKFLAG_ORDERED,
 				     _MALI_OSK_LOCK_ORDER_SESSIONS);
 	if (NULL == mali_sessions_lock) {
@@ -38,7 +38,7 @@ _mali_osk_errcode_t mali_session_initialize(void)
 void mali_session_terminate(void)
 {
 	if (NULL != mali_sessions_lock) {
-		_mali_osk_spinlock_irq_term(mali_sessions_lock);
+		_mali_osk_mutex_rw_term(mali_sessions_lock);
 		mali_sessions_lock = NULL;
 	}
 }
@@ -107,10 +107,10 @@ static void mali_session_gles_mem_deinit(struct mali_session_data *session)
 
 void mali_session_add(struct mali_session_data *session)
 {
-	mali_session_lock();
+	mali_session_lock(_MALI_OSK_LOCKMODE_RW);
 	_mali_osk_list_add(&session->link, &mali_sessions);
 	mali_session_count++;
-	mali_session_unlock();
+	mali_session_unlock(_MALI_OSK_LOCKMODE_RW);
 
 #if TIZEN_GLES_MEM_PROFILE
 	mali_session_gles_mem_init(session);
@@ -123,10 +123,10 @@ void mali_session_remove(struct mali_session_data *session)
 	mali_session_gles_mem_deinit(session);
 #endif
 
-	mali_session_lock();
+	mali_session_lock(_MALI_OSK_LOCKMODE_RW);
 	_mali_osk_list_delinit(&session->link);
 	mali_session_count--;
-	mali_session_unlock();
+	mali_session_unlock(_MALI_OSK_LOCKMODE_RW);
 }
 
 u32 mali_session_get_count(void)
@@ -145,7 +145,7 @@ u32 mali_session_max_window_num(void)
 	u32 max_window_num = 0;
 	u32 tmp_number = 0;
 
-	mali_session_lock();
+	mali_session_lock(_MALI_OSK_LOCKMODE_RO);
 
 	MALI_SESSION_FOREACH(session, tmp, link) {
 		tmp_number = _mali_osk_atomic_xchg(
@@ -155,7 +155,7 @@ u32 mali_session_max_window_num(void)
 		}
 	}
 
-	mali_session_unlock();
+	mali_session_unlock(_MALI_OSK_LOCKMODE_RO);
 
 	return max_window_num;
 }
@@ -168,7 +168,7 @@ void mali_session_memory_tracking(_mali_osk_print_ctx *print_ctx)
 	u32 total_mali_mem_size;
 
 	MALI_DEBUG_ASSERT_POINTER(print_ctx);
-	mali_session_lock();
+	mali_session_lock(_MALI_OSK_LOCKMODE_RO);
 	MALI_SESSION_FOREACH(session, tmp, link) {
 		_mali_osk_ctxprintf(print_ctx, "  %-25s  %-10u  %-10u  %-15u  %-15u  %-10u  %-10u\n",
 				    session->comm, session->pid,
@@ -179,7 +179,7 @@ void mali_session_memory_tracking(_mali_osk_print_ctx *print_ctx)
 				    (atomic_read(&session->mali_mem_array[MALI_MEM_DMA_BUF])) * _MALI_OSK_MALI_PAGE_SIZE
 				   );
 	}
-	mali_session_unlock();
+	mali_session_unlock(_MALI_OSK_LOCKMODE_RO);
 	mali_mem_usage  = _mali_ukk_report_memory_usage();
 	total_mali_mem_size = _mali_ukk_report_total_memory_size();
 	_mali_osk_ctxprintf(print_ctx, "Mali mem usage: %u\nMali mem limit: %u\n", mali_mem_usage, total_mali_mem_size);

@@ -132,16 +132,16 @@ void mali_session_terminate(void);
 /* List of all sessions. Actual list head in mali_kernel_core.c */
 extern _mali_osk_list_t mali_sessions;
 /* Lock to protect modification and access to the mali_sessions list */
-extern _mali_osk_spinlock_irq_t *mali_sessions_lock;
+extern _mali_osk_mutex_rw_t *mali_sessions_lock;
 
-MALI_STATIC_INLINE void mali_session_lock(void)
+MALI_STATIC_INLINE void mali_session_lock(_mali_osk_lock_mode_t mode)
 {
-	_mali_osk_spinlock_irq_lock(mali_sessions_lock);
+	_mali_osk_mutex_rw_wait(mali_sessions_lock, mode);
 }
 
-MALI_STATIC_INLINE void mali_session_unlock(void)
+MALI_STATIC_INLINE void mali_session_unlock(_mali_osk_lock_mode_t mode)
 {
-	_mali_osk_spinlock_irq_unlock(mali_sessions_lock);
+	_mali_osk_mutex_rw_signal(mali_sessions_lock, mode);
 }
 
 void mali_session_add(struct mali_session_data *session);

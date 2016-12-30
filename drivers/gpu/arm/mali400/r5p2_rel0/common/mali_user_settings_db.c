@@ -61,7 +61,7 @@ static void mali_user_settings_notify(_mali_uk_user_setting_t setting, u32 value
 			}
 		}
 
-		mali_session_lock();
+		mali_session_lock(_MALI_OSK_LOCKMODE_RO);
 
 		/* number of sessions will not change while we hold the lock */
 		num_sessions_with_lock = mali_session_get_count();
@@ -80,7 +80,7 @@ static void mali_user_settings_notify(_mali_uk_user_setting_t setting, u32 value
 			done = MALI_TRUE;
 		}
 
-		mali_session_unlock();
+		mali_session_unlock(_MALI_OSK_LOCKMODE_RO);
 
 		/* Delete any remaining/unused notification objects */
 		for (; used_notification_objects < num_sessions_alloc; used_notification_objects++) {
