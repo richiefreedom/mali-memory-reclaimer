@@ -82,7 +82,7 @@ void mali_mmu_invalidate_page(struct mali_mmu_core *mmu, u32 mali_address);
 void mali_mmu_activate_page_directory(struct mali_mmu_core *mmu, struct mali_page_directory *pagedir);
 void mali_mmu_activate_empty_page_directory(struct mali_mmu_core *mmu);
 void mali_mmu_activate_fault_flush_page_directory(struct mali_mmu_core *mmu);
-
+bool mali_mmu_in_page_fault(struct mali_mmu_core *mmu, bool stalled);
 void mali_mmu_page_fault_done(struct mali_mmu_core *mmu);
 
 MALI_STATIC_INLINE enum mali_interrupt_result mali_mmu_get_interrupt_result(struct mali_mmu_core *mmu)

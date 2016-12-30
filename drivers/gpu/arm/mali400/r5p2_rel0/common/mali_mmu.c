@@ -256,6 +256,21 @@ static void mali_mmu_disable_stall(struct mali_mmu_core *mmu)
 	if (MALI_REG_POLL_COUNT_FAST == i) MALI_DEBUG_PRINT(1, ("Disable stall request failed, MMU status is 0x%08X\n", mali_hw_core_register_read(&mmu->hw_core, MALI_MMU_REGISTER_STATUS)));
 }
 
+bool mali_mmu_in_page_fault(struct mali_mmu_core *mmu, bool stalled)
+{
+	u32 val;
+
+	val = mali_hw_core_register_read(&mmu->hw_core, MALI_MMU_REGISTER_STATUS);
+
+	if (stalled)
+		val &= (MALI_MMU_STATUS_BIT_STALL_ACTIVE |
+			MALI_MMU_STATUS_BIT_PAGE_FAULT_ACTIVE);
+	else
+		val &= MALI_MMU_STATUS_BIT_PAGE_FAULT_ACTIVE;
+
+	return !!val;
+}
+
 void mali_mmu_page_fault_done(struct mali_mmu_core *mmu)
 {
 	MALI_DEBUG_PRINT(4, ("Mali MMU: %s: Leaving page fault mode\n", mmu->hw_core.description));
