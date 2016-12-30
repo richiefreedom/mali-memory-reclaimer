@@ -41,10 +41,18 @@ u32 mali_mem_os_free(struct list_head *os_pages, u32 pages_count, mali_bool cow_
 
 _mali_osk_errcode_t mali_mem_os_put_page(struct page *page);
 
+_mali_osk_errcode_t mali_mem_os_put_page_no_unmap(struct page *page);
+
 void mali_mem_os_mali_map(mali_mem_backend *mem_bkend, u32 vaddr, u32 props);
+
+void _mali_mem_os_mali_unmap(mali_mem_allocation *alloc);
 
 void mali_mem_os_mali_unmap(mali_mem_allocation *alloc);
 
 int mali_mem_os_cpu_map(mali_mem_backend *mem_bkend, struct vm_area_struct *vma);
+
+void mali_mem_os_allocator_dec_allocated_pages(void);
+
+void mali_mem_os_allocator_inc_allocated_pages(void);
 
 #endif /* __MALI_MEMORY_OS_ALLOC_H__ */

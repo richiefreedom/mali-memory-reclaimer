@@ -22,6 +22,13 @@
 #include "mali_memory_os_alloc.h"
 #include "mali_kernel_linux.h"
 
+#include <linux/gmc.h>
+
+#include "mali_kernel_core.h"
+#include "mali_memory_virtual.h"
+
+#include "mali_memory_os_reclaim.h"
+
 /* Minimum size of allocator page pool */
 #define MALI_OS_MEMORY_KERNEL_BUFFER_SIZE_IN_PAGES (MALI_OS_MEMORY_KERNEL_BUFFER_SIZE_IN_MB * 256)
 #define MALI_OS_MEMORY_POOL_TRIM_JIFFIES (10 * CONFIG_HZ) /* Default to 10s */
@@ -82,6 +89,16 @@ static struct mali_mem_os_allocator {
 #endif
 };
 
+void mali_mem_os_allocator_dec_allocated_pages(void)
+{
+	atomic_dec(&mali_mem_os_allocator.allocated_pages);
+}
+
+void mali_mem_os_allocator_inc_allocated_pages(void)
+{
+	atomic_inc(&mali_mem_os_allocator.allocated_pages);
+}
+
 u32 mali_mem_os_free(struct list_head *os_pages, u32 pages_count, mali_bool cow_flag)
 {
 	LIST_HEAD(pages);
@@ -139,6 +156,15 @@ _mali_osk_errcode_t mali_mem_os_put_page(struct page *page)
 	return _MALI_OSK_ERR_OK;
 }
 
+_mali_osk_errcode_t mali_mem_os_put_page_no_unmap(struct page *page)
+{
+	MALI_DEBUG_ASSERT_POINTER(page);
+	if (1 == page_count(page))
+		atomic_sub(1, &mali_mem_os_allocator.allocated_pages);
+	put_page(page);
+	return _MALI_OSK_ERR_OK;
+}
+
 int mali_mem_os_alloc_pages(mali_mem_os_mem *os_mem, u32 size)
 {
 	struct page *new_page;
@@ -179,7 +205,6 @@ int mali_mem_os_alloc_pages(mali_mem_os_mem *os_mem, u32 size)
 	i = 0;
 	list_for_each_entry_safe(m_page, m_tmp, &pages_list, list) {
 		BUG_ON(NULL == m_page);
-
 		list_move_tail(&m_page->list, &os_mem->pages);
 	}
 
@@ -286,18 +311,23 @@ void mali_mem_os_mali_map(mali_mem_backend *mem_bkend, u32 vaddr, u32 props)
 	}
 }
 
-
-void mali_mem_os_mali_unmap(mali_mem_allocation *alloc)
+void _mali_mem_os_mali_unmap(mali_mem_allocation *alloc)
 {
 	struct mali_session_data *session;
 	MALI_DEBUG_ASSERT_POINTER(alloc);
 	session = alloc->session;
 	MALI_DEBUG_ASSERT_POINTER(session);
 
-	mali_session_memory_lock(session);
-	mali_mem_mali_map_free(session, alloc->psize, alloc->mali_vma_node.vm_node.start,
-			       alloc->flags);
-	mali_session_memory_unlock(session);
+	mali_mem_mali_map_free(session, alloc->psize,
+			alloc->mali_vma_node.vm_node.start,
+			alloc->flags);
+}
+
+void mali_mem_os_mali_unmap(mali_mem_allocation *alloc)
+{
+	mali_session_memory_lock(alloc->session);
+	_mali_mem_os_mali_unmap(alloc);
+	mali_session_memory_unlock(alloc->session);
 }
 
 int mali_mem_os_cpu_map(mali_mem_backend *mem_bkend, struct vm_area_struct *vma)
@@ -338,15 +368,19 @@ u32 mali_mem_os_release(mali_mem_backend *mem_bkend)
 	MALI_DEBUG_ASSERT_POINTER(alloc);
 
 	/* Unmap the memory from the mali virtual address space. */
-	mali_mem_os_mali_unmap(alloc);
+	mali_session_memory_lock(alloc->session);
+	_mali_mem_os_mali_unmap(alloc);
 	mutex_lock(&mem_bkend->mutex);
 	/* Free pages */
 	if (MALI_MEM_BACKEND_FLAG_COWED & mem_bkend->cow_flag) {
 		free_pages_nr = mali_mem_os_free(&mem_bkend->os_mem.pages, mem_bkend->os_mem.count, MALI_TRUE);
 	} else {
-		free_pages_nr = mali_mem_os_free(&mem_bkend->os_mem.pages, mem_bkend->os_mem.count, MALI_FALSE);
+		if (mem_bkend->type == MALI_MEM_OS)
+			free_pages_nr += mali_mem_os_invalidate_pages(alloc, mem_bkend);
+		free_pages_nr += mali_mem_os_free(&mem_bkend->os_mem.pages, mem_bkend->os_mem.count, MALI_FALSE);
 	}
 	mutex_unlock(&mem_bkend->mutex);
+	mali_session_memory_unlock(alloc->session);
 
 	MALI_DEBUG_PRINT(4, ("OS Mem free : allocated size = 0x%x, free size = 0x%x\n", mem_bkend->os_mem.count * _MALI_OSK_MALI_PAGE_SIZE,
 			     free_pages_nr * _MALI_OSK_MALI_PAGE_SIZE));

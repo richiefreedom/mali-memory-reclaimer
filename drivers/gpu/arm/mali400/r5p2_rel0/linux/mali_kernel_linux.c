@@ -49,6 +49,7 @@ static int is_first_resume = 1;
 /*Store the clk and vol for boot/insmod and mali_resume*/
 static struct mali_gpu_clk_item mali_gpu_clk[2];
 #endif
+#include "mali_memory_os_reclaim.h"
 
 #include <linux/dma-mapping.h>
 
@@ -450,6 +451,17 @@ int mali_module_init(void)
 				      mali_gpu_clk[0].vol / 1000,
 				      0, 0, 0);
 #endif
+
+	err = mali_mem_os_reclaimer_init();
+	if (0 != err) {
+#ifdef MALI_FAKE_PLATFORM_DEVICE
+#ifndef CONFIG_MALI_DT
+		mali_platform_device_unregister();
+#endif
+#endif
+		mali_platform_device = NULL;
+		return err;
+	}
 
 	MALI_PRINT(("Mali device driver loaded\n"));
 

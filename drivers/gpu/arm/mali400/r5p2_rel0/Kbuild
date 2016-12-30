@@ -55,6 +55,8 @@ mali-y += linux/mali_memory.o linux/mali_memory_os_alloc.o
 mali-y += linux/mali_memory_external.o
 mali-y += linux/mali_memory_block_alloc.o
 
+mali-$(CONFIG_MALI_MEM_OS_RECLAIM) += linux/mali_memory_os_reclaim.o
+
 mali-y += \
 	linux/mali_memory_manager.o \
 	linux/mali_memory_virtual.o \

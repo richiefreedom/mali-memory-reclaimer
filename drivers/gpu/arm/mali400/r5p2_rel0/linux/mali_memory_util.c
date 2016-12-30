@@ -35,7 +35,6 @@
 #include "mali_memory_cow.h"
 #include "mali_memory_block_alloc.h"
 
-
 /**
 *function @_mali_free_allocation_mem - free a memory allocation
 */
@@ -49,10 +48,15 @@ static u32 _mali_free_allocation_mem(mali_mem_allocation *mali_alloc)
 	if (0 == mali_alloc->psize)
 		goto out;
 
+	mali_vma_offset_remove_nomemset(&session->allocation_mgr,
+			&mali_alloc->mali_vma_node);
+
 	/* Get backend memory & Map on CPU */
 	mutex_lock(&mali_idr_mutex);
 	mem_bkend = idr_find(&mali_backend_idr, mali_alloc->backend_handle);
+	idr_remove(&mali_backend_idr, mali_alloc->backend_handle);
 	mutex_unlock(&mali_idr_mutex);
+
 	MALI_DEBUG_ASSERT(NULL != mem_bkend);
 
 	switch (mem_bkend->type) {
@@ -95,14 +99,10 @@ static u32 _mali_free_allocation_mem(mali_mem_allocation *mali_alloc)
 		break;
 	}
 
-	/*Remove backend memory idex */
-	mutex_lock(&mali_idr_mutex);
-	idr_remove(&mali_backend_idr, mali_alloc->backend_handle);
-	mutex_unlock(&mali_idr_mutex);
 	kfree(mem_bkend);
 out:
-	/* remove memory allocation  */
-	mali_vma_offset_remove(&session->allocation_mgr, &mali_alloc->mali_vma_node);
+	memset(&mali_alloc->mali_vma_node.vm_node, 0,
+			sizeof(mali_alloc->mali_vma_node.vm_node));
 	mali_mem_allocation_struct_destory(mali_alloc);
 	return free_pages_nr;
 }
@@ -114,16 +114,31 @@ u32 mali_allocation_unref(struct mali_mem_allocation **alloc)
 {
 	u32 free_pages_nr = 0;
 	mali_mem_allocation *mali_alloc = *alloc;
+	int ret;
+
 	*alloc = NULL;
-	if (0 == _mali_osk_atomic_dec_return(&mali_alloc->mem_alloc_refcount)) {
+
+	mutex_lock(&mali_alloc->mutex);
+	ret = _mali_osk_atomic_dec_return(&mali_alloc->mem_alloc_refcount);
+	mutex_unlock(&mali_alloc->mutex);
+
+	if (0 == ret) {
 		free_pages_nr = _mali_free_allocation_mem(mali_alloc);
 	}
+
 	return free_pages_nr;
+}
+
+void _mali_allocation_ref(struct mali_mem_allocation *alloc)
+{
+	_mali_osk_atomic_inc(&alloc->mem_alloc_refcount);
 }
 
 void mali_allocation_ref(struct mali_mem_allocation *alloc)
 {
-	_mali_osk_atomic_inc(&alloc->mem_alloc_refcount);
+	mutex_lock(&alloc->mutex);
+	_mali_allocation_ref(alloc);
+	mutex_unlock(&alloc->mutex);
 }
 
 void mali_free_session_allocations(struct mali_session_data *session)

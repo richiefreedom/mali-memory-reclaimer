@@ -99,6 +99,7 @@ static mali_mem_allocation *mali_mem_allocation_struct_create(struct mali_sessio
 
 	INIT_LIST_HEAD(&mali_allocation->list);
 	_mali_osk_atomic_init(&mali_allocation->mem_alloc_refcount, 1);
+	mutex_init(&mali_allocation->mutex);
 
 	/**
 	*add to session list
@@ -118,6 +119,7 @@ void  mali_mem_allocation_struct_destory(mali_mem_allocation *alloc)
 	list_del(&alloc->list);
 	mutex_unlock(&alloc->session->allocation_mgr.list_mutex);
 
+	mutex_destroy(&alloc->mutex);
 	kfree(alloc);
 }
 
@@ -257,11 +259,12 @@ _mali_osk_errcode_t _mali_ukk_mem_allocate(_mali_uk_alloc_mem_s *args)
 	mali_allocation->mali_vma_node.vm_node.start = args->gpu_vaddr;
 	mali_allocation->mali_vma_node.vm_node.size = args->vsize;
 
-	mali_vma_offset_add(&session->allocation_mgr, &mali_allocation->mali_vma_node);
 
 	/* check if need to allocate backend */
-	if (mali_allocation->psize == 0)
+	if (mali_allocation->psize == 0) {
+		mali_vma_offset_add(&session->allocation_mgr, &mali_allocation->mali_vma_node);
 		return _MALI_OSK_ERR_OK;
+	}
 
 	/**
 	*allocate physical backend & pages
@@ -338,6 +341,9 @@ _mali_osk_errcode_t _mali_ukk_mem_allocate(_mali_uk_alloc_mem_s *args)
 	if (atomic_read(&session->mali_mem_allocated_pages) * MALI_MMU_PAGE_SIZE > session->max_mali_mem_allocated_size) {
 		session->max_mali_mem_allocated_size = atomic_read(&session->mali_mem_allocated_pages) * MALI_MMU_PAGE_SIZE;
 	}
+
+	mali_vma_offset_add(&session->allocation_mgr, &mali_allocation->mali_vma_node);
+
 	return _MALI_OSK_ERR_OK;
 
 failed_gpu_map:
@@ -350,8 +356,6 @@ failed_gpu_map:
 failed_alloc_pages:
 	mali_mem_backend_struct_destory(&mem_backend, mali_allocation->backend_handle);
 failed_alloc_backend:
-
-	mali_vma_offset_remove(&session->allocation_mgr, &mali_allocation->mali_vma_node);
 	mali_mem_allocation_struct_destory(mali_allocation);
 
 	return ret;

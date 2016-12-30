@@ -38,6 +38,19 @@ config MALI_DVFS
 	---help---
 	  This enables support for dynamic change frequency of Mali with the goal of lowering power consumption.
 
+config MALI_MEM_OS_RECLAIM
+	bool "Enable MALI_MEM_OS allocations reclaimer"
+	depends on MALI400
+	depends on GPU_GMC_GENERIC
+	default y
+	---help---
+	  This enables support for MALI_MEM_OS allocations' reclaiming facilities
+	  With this option it is possible to compress memory regions allocated
+	  by the GPU driver for user space applications. The compression process
+	  can be triggered by any user space application by writing a process ID
+	  to a special virtual file. Memory regions are decompressed back when a
+	  page fault happens on CPU or GPU side.
+
 config MALI_DMA_BUF_MAP_ON_ATTACH
 	bool "Map dma-buf attachments on attach"
 	depends on MALI400 && DMA_SHARED_BUFFER

@@ -15,6 +15,8 @@ u32 mali_allocation_unref(struct mali_mem_allocation **alloc);
 
 void mali_allocation_ref(struct mali_mem_allocation *alloc);
 
+void _mali_allocation_ref(struct mali_mem_allocation *alloc);
+
 void mali_free_session_allocations(struct mali_session_data *session);
 
 #endif

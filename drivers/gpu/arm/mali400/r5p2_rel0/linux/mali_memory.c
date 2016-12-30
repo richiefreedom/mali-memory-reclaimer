@@ -17,6 +17,7 @@
 #include <linux/version.h>
 #include <linux/platform_device.h>
 #include <linux/idr.h>
+#include <asm/cacheflush.h>
 
 #include "mali_osk.h"
 #include "mali_executor.h"
@@ -28,6 +29,8 @@
 #include "mali_memory_virtual.h"
 #include "mali_memory_manager.h"
 #include "mali_memory_cow.h"
+
+#include "mali_memory_os_reclaim.h"
 
 
 extern unsigned int mali_dedicated_mem_size;
@@ -103,6 +106,9 @@ static int mali_mem_vma_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 		if (unlikely(ret != _MALI_OSK_ERR_OK)) {
 			return VM_FAULT_SIGBUS;
 		}
+	} else if (mem_bkend->type == MALI_MEM_OS) {
+		if (mali_mem_os_cpu_page_fault(alloc, mem_bkend, vmf, vma))
+			return VM_FAULT_SIGBUS;
 	} else {
 		MALI_DEBUG_ASSERT(0);
 		/*NOT support yet*/
@@ -200,6 +206,9 @@ int mali_mmap(struct file *filp, struct vm_area_struct *vma)
 	}
 	mutex_unlock(&mali_idr_mutex);
 
+	mutex_lock(&mali_alloc->mutex);
+	mutex_lock(&mem_bkend->mutex);
+
 	/* If it's a copy-on-write mapping, map to read only */
 	if (!(vma->vm_flags & VM_WRITE)) {
 		MALI_DEBUG_PRINT(4, ("mmap allocation with read only !\n"));
@@ -222,14 +231,21 @@ int mali_mmap(struct file *filp, struct vm_area_struct *vma)
 		MALI_DEBUG_ASSERT(0);
 	}
 
-	if (ret != 0)
+	if (ret != 0) {
+		mutex_unlock(&mem_bkend->mutex);
+		mutex_unlock(&mali_alloc->mutex);
+
 		return -EFAULT;
+	}
 out:
 	MALI_DEBUG_ASSERT(MALI_MEM_ALLOCATION_VALID_MAGIC == mali_alloc->magic);
 
 	vma->vm_private_data = (void *)mali_alloc;
 	mali_alloc->cpu_mapping.vma = vma;
-	mali_allocation_ref(mali_alloc);
+	_mali_allocation_ref(mali_alloc);
+
+	mutex_unlock(&mem_bkend->mutex);
+	mutex_unlock(&mali_alloc->mutex);
 
 	return 0;
 }

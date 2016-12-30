@@ -38,6 +38,10 @@ typedef struct mali_block_item {
 typedef enum mali_page_node_type {
 	MALI_PAGE_NODE_OS,
 	MALI_PAGE_NODE_BLOCK,
+#ifdef CONFIG_MALI_MEM_OS_RECLAIM
+	MALI_PAGE_NODE_OS_UNMAPPED,
+	MALI_PAGE_NODE_OS_COMPRESSED,
+#endif
 } mali_page_node_type;
 
 typedef struct mali_page_node {
@@ -46,8 +50,38 @@ typedef struct mali_page_node {
 		struct page *page;
 		mali_block_item *blk_it; /*pointer to block item*/
 	};
+	struct gmc_storage_handle *handle;
 	u32 type;
 } mali_page_node;
+
+#ifdef CONFIG_MALI_MEM_OS_RECLAIM
+
+#define mali_page_node_is_compressed(node) \
+	((node)->type == MALI_PAGE_NODE_OS_COMPRESSED)
+
+#define mali_page_node_is_decompressed(node) \
+	(!(mali_page_node_is_compressed((node))))
+
+#define mali_page_node_is_unmapped(node)               \
+	((node)->type == MALI_PAGE_NODE_OS_UNMAPPED || \
+	 (node)->type == MALI_PAGE_NODE_OS_COMPRESSED)
+
+#define mali_page_node_is_mapped(node) \
+	((node)->type == MALI_PAGE_NODE_OS)
+
+#define mali_page_node_set_compressed(node) \
+	(node)->type = MALI_PAGE_NODE_OS_COMPRESSED
+
+#define mali_page_node_set_unmapped(node) \
+	(node)->type = MALI_PAGE_NODE_OS_UNMAPPED
+
+#define mali_page_node_set_decompressed(node) \
+	mali_page_node_set_unmapped((node))
+
+#define mali_page_node_set_mapped(node) \
+	(node)->type = MALI_PAGE_NODE_OS
+
+#endif /* CONFIG_MALI_MEM_OS_RECLAIM */
 
 typedef struct mali_mem_os_mem {
 	struct list_head pages;
@@ -126,6 +160,7 @@ typedef struct mali_mem_allocation {
 	struct list_head list;
 	s32 backend_handle; /* idr for mem_backend */
 	_mali_osk_atomic_t mem_alloc_refcount;
+	struct mutex mutex;
 } mali_mem_allocation;
 
 /* COW backend memory type */

@@ -21,6 +21,7 @@
 #include "mali_timeline.h"
 #include "mali_osk_profiling.h"
 #include "mali_session.h"
+#include "mali_memory_os_reclaim.h"
 
 /*
  * If dma_buf with map on demand is used, we defer job deletion and job queue
@@ -750,6 +751,7 @@ _mali_osk_errcode_t mali_executor_interrupt_mmu(struct mali_group *group,
 			     in_upper_half ? "upper" : "bottom"));
 
 	mali_executor_lock();
+
 	if (!mali_group_is_working(group)) {
 		/* Not working, so nothing to do */
 		mali_executor_unlock();
@@ -798,11 +800,13 @@ _mali_osk_errcode_t mali_executor_interrupt_mmu(struct mali_group *group,
 		struct mali_gp_job *gp_job = NULL;
 		struct mali_pp_job *pp_job = NULL;
 
-#ifdef DEBUG
-
+#if defined(CONFIG_MALI_MEM_OS_RECLAIM) || defined(DEBUG)
 		u32 fault_address = mali_mmu_get_page_fault_addr(group->mmu);
+		int ret;
+#endif
+#ifdef DEBUG
 		u32 status = mali_mmu_get_status(group->mmu);
-		MALI_DEBUG_PRINT(2, ("Executor: Mali page fault detected at 0x%x from bus id %d of type %s on %s\n",
+		MALI_DEBUG_PRINT(3, ("Executor: Mali page fault detected at 0x%x from bus id %d of type %s on %s\n",
 				     (void *)(uintptr_t)fault_address,
 				     (status >> 6) & 0x1F,
 				     (status & 32) ? "write" : "read",
@@ -810,6 +814,48 @@ _mali_osk_errcode_t mali_executor_interrupt_mmu(struct mali_group *group,
 		MALI_DEBUG_PRINT(3, ("Executor: MMU rawstat = 0x%08X, MMU status = 0x%08X\n",
 				     mali_mmu_get_rawstat(group->mmu), status));
 #endif
+
+#ifdef CONFIG_MALI_MEM_OS_RECLAIM
+		/*
+		 * Temporarily unlock the group. This is necessary, because the
+		 * page fault handling code deals with speeping synchronization
+		 * primitives. Executor lock will be held by this code next time
+		 * when it modifies the page tables.
+		 */
+		mali_executor_unlock();
+
+		ret = mali_mem_os_restore_session(group, group->session,
+				fault_address);
+		/* Well-handled page faults should return the control here. */
+		if (!ret)
+			return _MALI_OSK_ERR_OK;
+
+		mali_executor_lock();
+
+		pr_emerg("ERROR! Unable to handle the page fault (%d)!\n", ret);
+
+		/*
+		 * Because the lock was not held some time it is necessary to
+		 * recheck that the group is stil working and MALI is on(). The
+		 * state could be changed because the executor lock was not
+		 * held.
+		 */
+		if (!mali_group_is_working(group)) {
+			/* Not working, so nothing to do */
+			mali_executor_unlock();
+			return _MALI_OSK_ERR_FAULT;
+		}
+
+		if (mali_is_on()) {
+			int_result = mali_group_get_interrupt_result_mmu(group);
+			if (MALI_INTERRUPT_RESULT_NONE == int_result) {
+				mali_executor_unlock();
+				return _MALI_OSK_ERR_FAULT;
+			}
+		}
+
+		MALI_DEBUG_PRINT(3, ("Executor: page fault is not handled.\n"));
+#endif /* CONFIG_MALI_MEM_OS_RECLAIM */
 
 		mali_executor_complete_group(group, MALI_FALSE, &gp_job, &pp_job);
 
