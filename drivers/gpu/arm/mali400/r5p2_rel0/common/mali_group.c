@@ -1651,9 +1651,50 @@ mali_bool mali_group_zap_session(struct mali_group *group,
 	}
 
 	if (group->is_working) {
+#ifdef CONFIG_MALI_MEM_OS_RECLAIM
+		bool is_ipf_before, is_ipf_after;
+		mali_bool zap_success;
+
+		zap_success = mali_mmu_zap_tlb(group->mmu);
+		/*
+		 * TLB zap can be unsuccessfull only if MMU stall cannot be done
+		 * here. The main reason of such behavior is concurrent handling
+		 * of a page fault. Thus, it is necessary to check on page fault
+		 * mode additionally.
+		 */
+		is_ipf_before = mali_mmu_in_page_fault(group->mmu, false);
+		if (!zap_success && !is_ipf_before) {
+			/*
+			 * This means that we are not in page fault and stall is
+			 * failed by some reason. This is a real error and job
+			 * can be failed.
+			 */
+			MALI_DEBUG_PRINT(2,
+			("Mali MMU zap failed. Page fault is not handled.\n"));
+			WARN_ON(1);
+
+			return MALI_FALSE;
+		}
+
+		/*
+		 * If this code is executed, it means: zap is successful or zap
+		 * is not successful and MMU is in page fault mode. This is a
+		 * normal situation, because with MALI_MEM_OS reclaim function
+		 * page faults are valid citizens!
+		 */
+		is_ipf_after = mali_mmu_in_page_fault(group->mmu, false);
+		if (is_ipf_after != is_ipf_before) {
+			MALI_DEBUG_PRINT(2,
+			("Page fault mode changed after zapping TLB %d -> %d",
+				is_ipf_before, is_ipf_after));
+		}
+
+		return MALI_TRUE;
+#else /* CONFIG_MALI_MEM_OS_RECLAIM */
 		/* The Zap also does the stall and disable_stall */
 		mali_bool zap_success = mali_mmu_zap_tlb(group->mmu);
 		return zap_success;
+#endif /* CONFIG_MALI_MEM_OS_RECLAIM */
 	} else {
 		/* Just remove the session instead of zapping */
 		mali_group_clear_session(group);
